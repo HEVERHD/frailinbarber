@@ -111,3 +111,15 @@ model BarberSettings {
   daysOff      String @default("0")
   phone        String?
 }
+
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  date      String               // YYYY-MM-DD
+  startTime String               // HH:mm
+  endTime   String               // HH:mm
+  reason    String?
+  allDay    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}

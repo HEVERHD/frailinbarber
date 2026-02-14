@@ -86,7 +86,7 @@ export async function GET() {
   const monthlyRevenue: { month: string; revenue: number }[] = []
   for (let i = 5; i >= 0; i--) {
     const m = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const monthName = m.toLocaleString("es-MX", { month: "short" })
+    const monthName = m.toLocaleString("es-CO", { month: "short" })
     const revenue = revenueByMonth
       .filter((a) => {
         const d = new Date(a.date)

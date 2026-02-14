@@ -27,6 +27,7 @@ export default function BookingPage() {
   const [clientPhone, setClientPhone] = useState("")
   const [clientEmail, setClientEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     fetch("/api/services")
@@ -67,7 +68,18 @@ export default function BookingPage() {
     })
 
     if (res.ok) {
-      router.push("/booking/confirm")
+      const params = new URLSearchParams({
+        service: selectedService.name,
+        date: selectedDate,
+        time: selectedTime,
+        duration: selectedService.duration.toString(),
+        price: selectedService.price.toString(),
+        name: clientName,
+      })
+      router.push(`/booking/confirm?${params.toString()}`)
+    } else {
+      const data = await res.json()
+      setError(data.error || "Error al agendar la cita")
     }
     setSubmitting(false)
   }
@@ -75,15 +87,15 @@ export default function BookingPage() {
   const today = new Date().toISOString().split("T")[0]
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(price)
+    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a0a0a] to-[#2d1515]">
       <div className="max-w-lg mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-white">
-            <span className="text-[#c9a96e]">Barber</span>App
+            <span className="text-[#e84118]">Frailin</span> Studio
           </h1>
           <p className="text-white/60 mt-1">Agenda tu cita</p>
         </div>
@@ -95,7 +107,7 @@ export default function BookingPage() {
               key={s}
               className={`h-2 w-12 rounded-full transition ${
                 (["service", "date", "time", "info", "confirm"] as Step[]).indexOf(step) >= i
-                  ? "bg-[#c9a96e]"
+                  ? "bg-[#e84118]"
                   : "bg-white/20"
               }`}
             />
@@ -116,9 +128,9 @@ export default function BookingPage() {
                       setSelectedService(service)
                       setStep("date")
                     }}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition hover:border-[#c9a96e] ${
+                    className={`w-full text-left p-4 rounded-xl border-2 transition hover:border-[#e84118] ${
                       selectedService?.id === service.id
-                        ? "border-[#c9a96e] bg-[#c9a96e]/5"
+                        ? "border-[#e84118] bg-[#e84118]/5"
                         : "border-gray-200"
                     }`}
                   >
@@ -130,7 +142,7 @@ export default function BookingPage() {
                         )}
                         <p className="text-xs text-gray-400 mt-1">{service.duration} min</p>
                       </div>
-                      <span className="font-bold text-[#c9a96e]">
+                      <span className="font-bold text-[#e84118]">
                         {formatPrice(service.price)}
                       </span>
                     </div>
@@ -149,7 +161,7 @@ export default function BookingPage() {
                 min={today}
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none text-lg"
+                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none text-lg"
               />
               <div className="flex gap-3 mt-6">
                 <button
@@ -161,7 +173,7 @@ export default function BookingPage() {
                 <button
                   onClick={() => selectedDate && setStep("time")}
                   disabled={!selectedDate}
-                  className="flex-1 py-3 rounded-xl bg-[#c9a96e] text-white font-medium hover:bg-[#b8944f] transition disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
                 >
                   Siguiente
                 </button>
@@ -180,7 +192,7 @@ export default function BookingPage() {
                   <p className="text-gray-500">Este día no hay servicio</p>
                   <button
                     onClick={() => setStep("date")}
-                    className="mt-4 text-[#c9a96e] font-medium"
+                    className="mt-4 text-[#e84118] font-medium"
                   >
                     Elegir otra fecha
                   </button>
@@ -190,7 +202,7 @@ export default function BookingPage() {
                   <p className="text-gray-500">No hay horarios disponibles</p>
                   <button
                     onClick={() => setStep("date")}
-                    className="mt-4 text-[#c9a96e] font-medium"
+                    className="mt-4 text-[#e84118] font-medium"
                   >
                     Elegir otra fecha
                   </button>
@@ -204,8 +216,8 @@ export default function BookingPage() {
                         onClick={() => setSelectedTime(slot)}
                         className={`py-3 rounded-xl border-2 font-medium transition ${
                           selectedTime === slot
-                            ? "border-[#c9a96e] bg-[#c9a96e] text-white"
-                            : "border-gray-200 hover:border-[#c9a96e]"
+                            ? "border-[#e84118] bg-[#e84118] text-white"
+                            : "border-gray-200 hover:border-[#e84118]"
                         }`}
                       >
                         {slot}
@@ -222,7 +234,7 @@ export default function BookingPage() {
                     <button
                       onClick={() => selectedTime && setStep("info")}
                       disabled={!selectedTime}
-                      className="flex-1 py-3 rounded-xl bg-[#c9a96e] text-white font-medium hover:bg-[#b8944f] transition disabled:opacity-50"
+                      className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
                     >
                       Siguiente
                     </button>
@@ -244,7 +256,7 @@ export default function BookingPage() {
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
                     placeholder="Tu nombre"
-                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -253,8 +265,8 @@ export default function BookingPage() {
                     type="tel"
                     value={clientPhone}
                     onChange={(e) => setClientPhone(e.target.value)}
-                    placeholder="+52 1234567890"
-                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+                    placeholder="+57 3001234567"
+                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -264,7 +276,7 @@ export default function BookingPage() {
                     value={clientEmail}
                     onChange={(e) => setClientEmail(e.target.value)}
                     placeholder="tu@email.com"
-                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+                    className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
                   />
                 </div>
               </div>
@@ -278,7 +290,7 @@ export default function BookingPage() {
                 <button
                   onClick={() => clientName && clientPhone && setStep("confirm")}
                   disabled={!clientName || !clientPhone}
-                  className="flex-1 py-3 rounded-xl bg-[#c9a96e] text-white font-medium hover:bg-[#b8944f] transition disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
                 >
                   Revisar
                 </button>
@@ -298,7 +310,7 @@ export default function BookingPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Fecha</span>
                   <span className="font-medium">
-                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-MX", {
+                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-CO", {
                       weekday: "long",
                       day: "numeric",
                       month: "long",
@@ -316,7 +328,7 @@ export default function BookingPage() {
                 <hr />
                 <div className="flex justify-between">
                   <span className="text-gray-500">Total</span>
-                  <span className="font-bold text-lg text-[#c9a96e]">
+                  <span className="font-bold text-lg text-[#e84118]">
                     {selectedService && formatPrice(selectedService.price)}
                   </span>
                 </div>
@@ -338,11 +350,17 @@ export default function BookingPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting}
-                  className="flex-1 py-3 rounded-xl bg-[#c9a96e] text-white font-semibold hover:bg-[#b8944f] transition disabled:opacity-50"
+                  className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-semibold hover:bg-[#c0392b] transition disabled:opacity-50"
                 >
                   {submitting ? "Agendando..." : "Confirmar Cita"}
                 </button>
               </div>
+
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
             </div>
           )}
         </div>

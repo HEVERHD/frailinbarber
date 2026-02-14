@@ -6,14 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("es-MX", {
+  return new Intl.NumberFormat("es-CO", {
     style: "currency",
-    currency: "MXN",
+    currency: "COP",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(amount)
 }
 
 export function formatTime(date: Date): string {
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("es-CO", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
@@ -21,7 +23,7 @@ export function formatTime(date: Date): string {
 }
 
 export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("es-MX", {
+  return new Intl.DateTimeFormat("es-CO", {
     weekday: "long",
     year: "numeric",
     month: "long",

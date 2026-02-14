@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import { useToast } from "@/components/ui/toast"
 
 type Appointment = {
   id: string
@@ -12,22 +13,44 @@ type Appointment = {
   service: { name: string; price: number; duration: number }
 }
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pendiente", color: "bg-yellow-100 text-yellow-700" },
-  CONFIRMED: { label: "Confirmada", color: "bg-blue-100 text-blue-700" },
-  COMPLETED: { label: "Completada", color: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Cancelada", color: "bg-red-100 text-red-700" },
-  NO_SHOW: { label: "No asistió", color: "bg-gray-100 text-gray-700" },
+const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> = {
+  PENDING: { label: "Pendiente", color: "bg-yellow-900/50 text-yellow-400", dot: "bg-yellow-400" },
+  CONFIRMED: { label: "Confirmada", color: "bg-blue-900/50 text-blue-400", dot: "bg-blue-400" },
+  COMPLETED: { label: "Completada", color: "bg-green-900/50 text-green-400", dot: "bg-green-400" },
+  CANCELLED: { label: "Cancelada", color: "bg-red-900/50 text-red-400", dot: "bg-red-400" },
+  NO_SHOW: { label: "No asistio", color: "bg-[#3d2020] text-white/60", dot: "bg-white/40" },
+}
+
+const DAYS_ES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7:00 - 19:00
+
+function getWeekDays(dateStr: string) {
+  const date = new Date(dateStr + "T12:00:00")
+  const day = date.getDay()
+  const monday = new Date(date)
+  monday.setDate(date.getDate() - ((day + 6) % 7))
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return {
+      date: d.toISOString().split("T")[0],
+      dayName: DAYS_ES[d.getDay()],
+      dayNum: d.getDate(),
+      isToday: d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0],
+    }
+  })
 }
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [weekAppointments, setWeekAppointments] = useState<Appointment[]>([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [showNewForm, setShowNewForm] = useState(false)
+  const [view, setView] = useState<"list" | "week">("week")
 
-  // New appointment form
   const [services, setServices] = useState<any[]>([])
   const [newApt, setNewApt] = useState({
     clientName: "",
@@ -36,10 +59,28 @@ export default function AppointmentsPage() {
     time: "",
     notes: "",
   })
+  const [formError, setFormError] = useState("")
+  const { toast } = useToast()
+
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
+
+  // Appointments for the selected day (used in mobile day timeline + list view)
+  const dayAppointments = useMemo(() => {
+    return weekAppointments
+      .filter((apt) => {
+        const aptDate = new Date(apt.date).toISOString().split("T")[0]
+        return aptDate === selectedDate && apt.status !== "CANCELLED"
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  }, [weekAppointments, selectedDate])
 
   useEffect(() => {
     fetchAppointments()
   }, [selectedDate, filter])
+
+  useEffect(() => {
+    fetchWeekAppointments()
+  }, [weekDays])
 
   useEffect(() => {
     fetch("/api/services")
@@ -57,21 +98,38 @@ export default function AppointmentsPage() {
     setLoading(false)
   }
 
+  const fetchWeekAppointments = async () => {
+    const startDate = weekDays[0].date
+    const endDate = weekDays[6].date
+    const res = await fetch(`/api/appointments?startDate=${startDate}&endDate=${endDate}`)
+    const data = await res.json()
+    setWeekAppointments(Array.isArray(data) ? data : [])
+  }
+
   const updateStatus = async (id: string, status: string) => {
     await fetch("/api/appointments", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     })
+    const labels: Record<string, string> = {
+      CONFIRMED: "Cita confirmada",
+      COMPLETED: "Cita completada",
+      CANCELLED: "Cita cancelada",
+      NO_SHOW: "Marcada como no-show",
+    }
+    toast(labels[status] || "Estado actualizado")
     fetchAppointments()
+    fetchWeekAppointments()
   }
 
   const createAppointment = async () => {
     if (!newApt.clientName || !newApt.phone || !newApt.serviceId || !newApt.time) return
+    setFormError("")
 
     const dateTimeStr = `${selectedDate}T${newApt.time}:00`
 
-    await fetch("/api/appointments", {
+    const res = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -84,51 +142,116 @@ export default function AppointmentsPage() {
       }),
     })
 
+    if (!res.ok) {
+      const data = await res.json()
+      setFormError(data.error || "Error al crear la cita")
+      return
+    }
+
     setNewApt({ clientName: "", phone: "", serviceId: "", time: "", notes: "" })
     setShowNewForm(false)
+    toast("Cita creada")
     fetchAppointments()
+    fetchWeekAppointments()
+  }
+
+  const navigateWeek = (direction: number) => {
+    const current = new Date(selectedDate + "T12:00:00")
+    current.setDate(current.getDate() + direction * 7)
+    setSelectedDate(current.toISOString().split("T")[0])
+  }
+
+  const navigateDay = (direction: number) => {
+    const current = new Date(selectedDate + "T12:00:00")
+    current.setDate(current.getDate() + direction)
+    setSelectedDate(current.toISOString().split("T")[0])
+  }
+
+  const goToToday = () => {
+    setSelectedDate(new Date().toISOString().split("T")[0])
+  }
+
+  const getAppointmentsForDayHour = (dayDate: string, hour: number) => {
+    return weekAppointments.filter((apt) => {
+      const aptDate = new Date(apt.date)
+      const aptDateStr = aptDate.toISOString().split("T")[0]
+      return (
+        aptDateStr === dayDate &&
+        aptDate.getHours() === hour &&
+        apt.status !== "CANCELLED"
+      )
+    })
+  }
+
+  // Count appointments per day for the week strip badges
+  const getDayCount = (dayDate: string) => {
+    return weekAppointments.filter((apt) => {
+      const aptDateStr = new Date(apt.date).toISOString().split("T")[0]
+      return aptDateStr === dayDate && apt.status !== "CANCELLED"
+    }).length
   }
 
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold">Citas</h1>
-        <button
-          onClick={() => setShowNewForm(!showNewForm)}
-          className="bg-[#c9a96e] text-white px-4 py-2 rounded-xl font-medium hover:bg-[#b8944f] transition text-sm"
-        >
-          + Nueva Cita
-        </button>
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Citas</h1>
+        <div className="flex gap-2">
+          <div className="hidden sm:flex bg-[#1a0a0a] rounded-xl p-1 border border-[#3d2020]">
+            <button
+              onClick={() => setView("week")}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                view === "week" ? "bg-[#e84118] text-white" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Semana
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                view === "list" ? "bg-[#e84118] text-white" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Lista
+            </button>
+          </div>
+          <button
+            onClick={() => setShowNewForm(!showNewForm)}
+            className="bg-[#e84118] text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-[#c0392b] transition text-sm"
+          >
+            + Nueva
+          </button>
+        </div>
       </div>
 
       {/* New appointment form */}
       {showNewForm && (
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-          <h3 className="font-semibold mb-4">Agendar cita manual</h3>
-          <div className="grid sm:grid-cols-2 gap-4">
+        <div className="bg-[#2d1515] rounded-xl p-4 sm:p-6 border border-[#3d2020] mb-4">
+          <h3 className="font-semibold mb-3 text-white text-sm">Agendar cita manual</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"
               placeholder="Nombre del cliente"
               value={newApt.clientName}
               onChange={(e) => setNewApt({ ...newApt, clientName: e.target.value })}
-              className="p-3 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 text-sm"
             />
             <input
               type="tel"
-              placeholder="WhatsApp (+52...)"
+              placeholder="WhatsApp (+57...)"
               value={newApt.phone}
               onChange={(e) => setNewApt({ ...newApt, phone: e.target.value })}
-              className="p-3 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 text-sm"
             />
             <select
               value={newApt.serviceId}
               onChange={(e) => setNewApt({ ...newApt, serviceId: e.target.value })}
-              className="p-3 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm"
             >
               <option value="">Seleccionar servicio</option>
               {services.map((s: any) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.duration} min - ${s.price})
+                  {s.name} ({s.duration}min)
                 </option>
               ))}
             </select>
@@ -136,26 +259,31 @@ export default function AppointmentsPage() {
               type="time"
               value={newApt.time}
               onChange={(e) => setNewApt({ ...newApt, time: e.target.value })}
-              className="p-3 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
+              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm"
             />
             <input
               type="text"
               placeholder="Notas (opcional)"
               value={newApt.notes}
               onChange={(e) => setNewApt({ ...newApt, notes: e.target.value })}
-              className="p-3 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none sm:col-span-2"
+              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 sm:col-span-2 text-sm"
             />
           </div>
-          <div className="flex gap-3 mt-4">
+          {formError && (
+            <div className="mt-3 p-3 bg-red-900/30 border border-red-800 rounded-xl text-red-400 text-xs">
+              {formError}
+            </div>
+          )}
+          <div className="flex gap-2 mt-3">
             <button
-              onClick={() => setShowNewForm(false)}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-sm hover:bg-gray-50 transition"
+              onClick={() => { setShowNewForm(false); setFormError("") }}
+              className="px-4 py-2 rounded-xl border border-[#3d2020] text-sm hover:bg-[#1a0a0a] transition text-white"
             >
               Cancelar
             </button>
             <button
               onClick={createAppointment}
-              className="px-4 py-2 rounded-xl bg-[#1a1a2e] text-white text-sm hover:bg-[#16213e] transition"
+              className="px-4 py-2 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition"
             >
               Agendar
             </button>
@@ -163,114 +291,347 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="p-2 border border-gray-200 rounded-xl focus:border-[#c9a96e] focus:outline-none"
-        />
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { value: "all", label: "Todas" },
-            { value: "CONFIRMED", label: "Confirmadas" },
-            { value: "PENDING", label: "Pendientes" },
-            { value: "COMPLETED", label: "Completadas" },
-          ].map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-3 py-1.5 rounded-lg text-sm transition ${
-                filter === f.value
-                  ? "bg-[#1a1a2e] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+      {/* ============ MOBILE: Day strip + timeline ============ */}
+      <div className="sm:hidden">
+        {/* Week navigation */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => navigateWeek(-1)}
+            className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 text-sm"
+          >
+            &larr;
+          </button>
+          <button
+            onClick={goToToday}
+            className="px-3 py-1.5 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-xs text-white/60"
+          >
+            Hoy
+          </button>
+          <p className="text-xs text-white/40">
+            {new Date(weekDays[0].date + "T12:00:00").toLocaleDateString("es-CO", { month: "short", year: "numeric" })}
+          </p>
+          <button
+            onClick={() => navigateWeek(1)}
+            className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 text-sm"
+          >
+            &rarr;
+          </button>
         </div>
-      </div>
 
-      {/* Appointment list */}
-      {loading ? (
-        <p className="text-gray-400 text-center py-8">Cargando...</p>
-      ) : appointments.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-100">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="text-gray-400">No hay citas para esta fecha</p>
+        {/* Horizontal day strip */}
+        <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
+          {weekDays.map((day) => {
+            const count = getDayCount(day.date)
+            const isSelected = day.date === selectedDate
+            return (
+              <button
+                key={day.date}
+                onClick={() => setSelectedDate(day.date)}
+                className={`flex-1 min-w-[46px] flex flex-col items-center py-2 px-1 rounded-xl transition relative ${
+                  isSelected
+                    ? "bg-[#e84118] text-white"
+                    : day.isToday
+                    ? "bg-[#e84118]/20 text-[#e84118] border border-[#e84118]/40"
+                    : "bg-[#1a0a0a] text-white/60 border border-[#3d2020]"
+                }`}
+              >
+                <span className="text-[10px] uppercase">{day.dayName}</span>
+                <span className="text-lg font-bold leading-tight">{day.dayNum}</span>
+                {count > 0 && (
+                  <span className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                    isSelected ? "bg-white" : "bg-[#e84118]"
+                  }`} />
+                )}
+              </button>
+            )
+          })}
         </div>
-      ) : (
-        <div className="space-y-3">
-          {appointments.map((apt) => (
-            <div
-              key={apt.id}
-              className="bg-white rounded-xl p-4 shadow-sm border border-gray-100"
-            >
-              <div className="flex items-start justify-between">
+
+        {/* Day timeline */}
+        <div className="space-y-2">
+          {dayAppointments.length === 0 ? (
+            <div className="text-center py-10 bg-[#2d1515] rounded-xl border border-[#3d2020]">
+              <p className="text-3xl mb-2">📅</p>
+              <p className="text-white/30 text-sm">Sin citas para este dia</p>
+            </div>
+          ) : (
+            dayAppointments.map((apt) => (
+              <div
+                key={apt.id}
+                className="bg-[#2d1515] rounded-xl p-3 border border-[#3d2020]"
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#c9a96e]/10 rounded-full flex items-center justify-center text-lg font-bold text-[#c9a96e]">
-                    {(apt.user?.name || "?")[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{apt.user?.name || "Cliente"}</p>
-                    <p className="text-sm text-gray-500">{apt.service.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {apt.user?.phone} · {apt.bookedBy === "BARBER" ? "Agendado por ti" : "Reserva online"}
+                  {/* Time column */}
+                  <div className="text-center min-w-[48px]">
+                    <p className="text-sm font-bold text-white">
+                      {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
                     </p>
+                    <p className="text-[10px] text-white/30">{apt.service.duration}min</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold">
-                    {new Date(apt.date).toLocaleTimeString("es-MX", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${STATUS_MAP[apt.status]?.color}`}
-                  >
+
+                  {/* Divider */}
+                  <div className={`w-1 h-10 rounded-full ${STATUS_MAP[apt.status]?.dot}`} />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-white text-sm truncate">{apt.user?.name || "Cliente"}</p>
+                    <p className="text-xs text-white/40 truncate">{apt.service.name}</p>
+                  </div>
+
+                  {/* Status */}
+                  <span className={`text-[10px] px-2 py-1 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.color}`}>
                     {STATUS_MAP[apt.status]?.label}
                   </span>
                 </div>
+
+                {/* Actions */}
+                {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                  <div className="flex gap-1.5 mt-2 pt-2 border-t border-[#3d2020]">
+                    {apt.status === "PENDING" && (
+                      <button
+                        onClick={() => updateStatus(apt.id, "CONFIRMED")}
+                        className="text-[10px] px-2 py-1 rounded-lg bg-blue-900/30 text-blue-400"
+                      >
+                        Confirmar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => updateStatus(apt.id, "COMPLETED")}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-green-900/30 text-green-400"
+                    >
+                      Completar
+                    </button>
+                    <button
+                      onClick={() => updateStatus(apt.id, "NO_SHOW")}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-[#3d2020] text-white/50"
+                    >
+                      No asistio
+                    </button>
+                    <button
+                      onClick={() => updateStatus(apt.id, "CANCELLED")}
+                      className="text-[10px] px-2 py-1 rounded-lg bg-red-900/30 text-red-400"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* ============ DESKTOP: Weekly calendar / List ============ */}
+      <div className="hidden sm:block">
+        {view === "week" && (
+          <div>
+            {/* Week navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateWeek(-1)}
+                  className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 hover:text-white transition"
+                >
+                  &larr;
+                </button>
+                <button
+                  onClick={goToToday}
+                  className="px-3 py-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-sm text-white/60 hover:text-white transition"
+                >
+                  Hoy
+                </button>
+                <button
+                  onClick={() => navigateWeek(1)}
+                  className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 hover:text-white transition"
+                >
+                  &rarr;
+                </button>
+              </div>
+              <p className="text-sm text-white/50">
+                {new Date(weekDays[0].date + "T12:00:00").toLocaleDateString("es-CO", { month: "long", year: "numeric" })}
+              </p>
+            </div>
+
+            {/* Calendar grid */}
+            <div className="bg-[#2d1515] rounded-xl border border-[#3d2020] overflow-hidden">
+              {/* Day headers */}
+              <div className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-[#3d2020]">
+                <div className="p-2" />
+                {weekDays.map((day) => (
+                  <div
+                    key={day.date}
+                    onClick={() => { setSelectedDate(day.date); setView("list") }}
+                    className={`p-2 text-center cursor-pointer hover:bg-white/5 transition border-l border-[#3d2020] ${
+                      day.isToday ? "bg-[#e84118]/10" : ""
+                    }`}
+                  >
+                    <p className="text-[10px] text-white/40">{day.dayName}</p>
+                    <p className={`text-base font-bold ${
+                      day.isToday ? "text-[#e84118]" : "text-white"
+                    }`}>
+                      {day.dayNum}
+                    </p>
+                  </div>
+                ))}
               </div>
 
-              {/* Actions */}
-              {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
-                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                  {apt.status === "PENDING" && (
-                    <button
-                      onClick={() => updateStatus(apt.id, "CONFIRMED")}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                    >
-                      Confirmar
-                    </button>
-                  )}
-                  <button
-                    onClick={() => updateStatus(apt.id, "COMPLETED")}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition"
-                  >
-                    Completar
-                  </button>
-                  <button
-                    onClick={() => updateStatus(apt.id, "NO_SHOW")}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 transition"
-                  >
-                    No asistió
-                  </button>
-                  <button
-                    onClick={() => updateStatus(apt.id, "CANCELLED")}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
-                  >
-                    Cancelar
-                  </button>
+              {/* Time slots */}
+              {HOURS.map((hour) => (
+                <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-[#3d2020]/50">
+                  <div className="p-1 text-[10px] text-white/30 text-right pr-2 pt-2">
+                    {hour.toString().padStart(2, "0")}:00
+                  </div>
+                  {weekDays.map((day) => {
+                    const aptsInSlot = getAppointmentsForDayHour(day.date, hour)
+                    return (
+                      <div
+                        key={`${day.date}-${hour}`}
+                        className={`border-l border-[#3d2020]/50 min-h-[50px] p-0.5 ${
+                          day.isToday ? "bg-[#e84118]/5" : ""
+                        }`}
+                      >
+                        {aptsInSlot.map((apt) => (
+                          <div
+                            key={apt.id}
+                            onClick={() => { setSelectedDate(day.date); setView("list") }}
+                            className={`text-[10px] p-1 rounded mb-0.5 cursor-pointer transition hover:brightness-125 ${
+                              apt.status === "COMPLETED"
+                                ? "bg-green-900/40 border border-green-800/50"
+                                : apt.status === "CONFIRMED"
+                                ? "bg-blue-900/40 border border-blue-800/50"
+                                : "bg-yellow-900/40 border border-yellow-800/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1">
+                              <div className={`w-1 h-1 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.dot}`} />
+                              <span className="font-medium text-white truncate">
+                                {apt.user?.name?.split(" ")[0] || "?"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+
+        {view === "list" && (
+          <div>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="p-2 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+              />
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { value: "all", label: "Todas" },
+                  { value: "CONFIRMED", label: "Confirmadas" },
+                  { value: "PENDING", label: "Pendientes" },
+                  { value: "COMPLETED", label: "Completadas" },
+                ].map((f) => (
+                  <button
+                    key={f.value}
+                    onClick={() => setFilter(f.value)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                      filter === f.value
+                        ? "bg-[#e84118] text-white"
+                        : "bg-[#1a0a0a] text-white/50 hover:bg-[#3d2020]"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Appointment list */}
+            {loading ? (
+              <p className="text-white/30 text-center py-8">Cargando...</p>
+            ) : appointments.length === 0 ? (
+              <div className="text-center py-12 bg-[#2d1515] rounded-xl border border-[#3d2020]">
+                <p className="text-4xl mb-3">📅</p>
+                <p className="text-white/30">No hay citas para esta fecha</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {appointments.map((apt) => (
+                  <div
+                    key={apt.id}
+                    className="bg-[#2d1515] rounded-xl p-4 border border-[#3d2020]"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-[#e84118]/20 rounded-full flex items-center justify-center text-lg font-bold text-[#e84118]">
+                          {(apt.user?.name || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-white">{apt.user?.name || "Cliente"}</p>
+                          <p className="text-sm text-white/40">{apt.service.name}</p>
+                          <p className="text-xs text-white/30">
+                            {apt.user?.phone} · {apt.bookedBy === "BARBER" ? "Agendado por ti" : "Reserva online"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-white">
+                          {new Date(apt.date).toLocaleTimeString("es-CO", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${STATUS_MAP[apt.status]?.color}`}
+                        >
+                          {STATUS_MAP[apt.status]?.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-[#3d2020]">
+                        {apt.status === "PENDING" && (
+                          <button
+                            onClick={() => updateStatus(apt.id, "CONFIRMED")}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition"
+                          >
+                            Confirmar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => updateStatus(apt.id, "COMPLETED")}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-green-900/30 text-green-400 hover:bg-green-900/50 transition"
+                        >
+                          Completar
+                        </button>
+                        <button
+                          onClick={() => updateStatus(apt.id, "NO_SHOW")}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-[#3d2020] text-white/50 hover:bg-[#4d2c2c] transition"
+                        >
+                          No asistio
+                        </button>
+                        <button
+                          onClick={() => updateStatus(apt.id, "CANCELLED")}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-900/30 text-red-400 hover:bg-red-900/50 transition"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

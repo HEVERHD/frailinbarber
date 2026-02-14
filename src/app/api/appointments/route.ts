@@ -15,11 +15,19 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const dateStr = searchParams.get("date")
+  const startDate = searchParams.get("startDate")
+  const endDate = searchParams.get("endDate")
   const status = searchParams.get("status")
 
   const where: any = {}
 
-  if (dateStr) {
+  if (startDate && endDate) {
+    // Date range query (for weekly calendar)
+    where.date = {
+      gte: new Date(startDate + "T00:00:00"),
+      lt: new Date(endDate + "T23:59:59"),
+    }
+  } else if (dateStr) {
     // Parse as local date (noon to avoid timezone shifts)
     const date = new Date(dateStr + "T00:00:00")
     const nextDay = new Date(dateStr + "T23:59:59")
@@ -71,9 +79,64 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Get service duration for conflict check
+  const service = await prisma.service.findUnique({ where: { id: body.serviceId } })
+  if (!service) {
+    return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
+  }
+
+  const appointmentDate = new Date(body.date)
+  const appointmentEnd = new Date(appointmentDate.getTime() + service.duration * 60000)
+
+  // Check for conflicting appointments (overlapping time slots)
+  const existingAppointments = await prisma.appointment.findMany({
+    where: {
+      date: {
+        gte: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate()),
+        lt: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate() + 1),
+      },
+      status: { in: ["PENDING", "CONFIRMED"] },
+    },
+    include: { service: true },
+  })
+
+  const hasConflict = existingAppointments.some((existing) => {
+    const existingStart = new Date(existing.date).getTime()
+    const existingEnd = existingStart + existing.service.duration * 60000
+    const newStart = appointmentDate.getTime()
+    const newEnd = appointmentEnd.getTime()
+    return newStart < existingEnd && newEnd > existingStart
+  })
+
+  if (hasConflict) {
+    return NextResponse.json(
+      { error: "Ya existe una cita en ese horario. Por favor selecciona otro." },
+      { status: 409 }
+    )
+  }
+
+  // Check for blocked slots
+  const dateStr2 = body.date.split("T")[0]
+  const timeStr = `${appointmentDate.getHours().toString().padStart(2, "0")}:${appointmentDate.getMinutes().toString().padStart(2, "0")}`
+  const blockedSlots = await prisma.blockedSlot.findMany({
+    where: { date: dateStr2 },
+  })
+
+  const isBlocked = blockedSlots.some((blocked) => {
+    if (blocked.allDay) return true
+    return timeStr >= blocked.startTime && timeStr < blocked.endTime
+  })
+
+  if (isBlocked) {
+    return NextResponse.json(
+      { error: "Este horario está bloqueado. Por favor selecciona otro." },
+      { status: 409 }
+    )
+  }
+
   const appointment = await prisma.appointment.create({
     data: {
-      date: new Date(body.date),
+      date: appointmentDate,
       userId: user.id,
       serviceId: body.serviceId,
       bookedBy: body.bookedBy || "CLIENT",

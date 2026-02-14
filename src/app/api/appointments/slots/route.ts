@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const date = new Date(dateStr + "T00:00:00")
   const nextDay = new Date(dateStr + "T23:59:59")
 
-  const [settings, service, appointments] = await Promise.all([
+  const [settings, service, appointments, blockedSlots] = await Promise.all([
     prisma.barberSettings.findFirst(),
     prisma.service.findUnique({ where: { id: serviceId } }),
     prisma.appointment.findMany({
@@ -24,6 +24,10 @@ export async function GET(req: NextRequest) {
         date: { gte: date, lt: nextDay },
         status: { in: ["PENDING", "CONFIRMED"] },
       },
+      include: { service: true },
+    }),
+    prisma.blockedSlot.findMany({
+      where: { date: dateStr },
     }),
   ])
 
@@ -37,14 +41,43 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ slots: [], dayOff: true })
   }
 
+  // Check if entire day is blocked
+  const dayBlocked = blockedSlots.some((b) => b.allDay)
+  if (dayBlocked) {
+    return NextResponse.json({ slots: [], dayOff: false, blocked: true })
+  }
+
   const bookedSlots = appointments.map((a) => a.date)
-  const slots = generateTimeSlots(
+  let slots = generateTimeSlots(
     settings.openTime,
     settings.closeTime,
     service.duration,
     bookedSlots,
     date
   )
+
+  // Filter out blocked time ranges
+  if (blockedSlots.length > 0) {
+    slots = slots.filter((slot) => {
+      return !blockedSlots.some((blocked) => {
+        return slot >= blocked.startTime && slot < blocked.endTime
+      })
+    })
+  }
+
+  // Also filter out slots that would overlap with existing appointments (duration-aware)
+  slots = slots.filter((slot) => {
+    const [slotH, slotM] = slot.split(":").map(Number)
+    const slotStart = slotH * 60 + slotM
+    const slotEnd = slotStart + service.duration
+
+    return !appointments.some((apt) => {
+      const aptDate = new Date(apt.date)
+      const aptStart = aptDate.getHours() * 60 + aptDate.getMinutes()
+      const aptEnd = aptStart + apt.service.duration
+      return slotStart < aptEnd && slotEnd > aptStart
+    })
+  })
 
   return NextResponse.json({ slots, dayOff: false })
 }

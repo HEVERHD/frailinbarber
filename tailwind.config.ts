@@ -9,10 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        accent: "#c9a96e",
-        "accent-dark": "#b8944f",
-        dark: "#1a1a2e",
-        "dark-deep": "#16213e",
+        accent: "#e84118",
+        "accent-hover": "#c0392b",
+        "accent-warm": "#f0932b",
+        dark: "#1a0a0a",
+        "dark-card": "#2d1515",
+        "dark-border": "#3d2020",
+        "dark-deep": "#120505",
       },
     },
   },

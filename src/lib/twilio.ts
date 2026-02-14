@@ -13,13 +13,24 @@ export async function sendWhatsAppMessage(to: string, message: string) {
     return
   }
 
-  const formattedTo = to.startsWith("whatsapp:") ? to : `whatsapp:${to}`
+  // Ensure phone has Colombia country code (+57)
+  let phone = to.replace(/\s+/g, "").replace(/^0+/, "")
+  if (!phone.startsWith("+")) {
+    phone = phone.startsWith("57") ? `+${phone}` : `+57${phone}`
+  }
+  const formattedTo = phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`
 
-  await client.messages.create({
-    from,
-    to: formattedTo,
-    body: message,
-  })
+  try {
+    const msg = await client.messages.create({
+      from,
+      to: formattedTo,
+      body: message,
+    })
+    console.log(`[WhatsApp] Sent to ${formattedTo} | SID: ${msg.sid}`)
+  } catch (error: any) {
+    console.error(`[WhatsApp Error] ${error.message}`)
+    throw error
+  }
 }
 
 export function buildConfirmationMessage(
