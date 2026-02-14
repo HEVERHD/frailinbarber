@@ -43,7 +43,7 @@ export function Sidebar() {
                   : "text-white/60 hover:text-white hover:bg-white/5"
               }`}
             >
-              <span>{item.icon}</span>
+              <span suppressHydrationWarning>{item.icon}</span>
               {item.label}
             </Link>
           ))}
@@ -55,14 +55,14 @@ export function Sidebar() {
             target="_blank"
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/60 hover:text-white hover:bg-white/5 transition"
           >
-            <span>🔗</span>
+            <span suppressHydrationWarning>🔗</span>
             Link de Booking
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-white/60 hover:text-red-400 hover:bg-white/5 transition"
           >
-            <span>🚪</span>
+            <span suppressHydrationWarning>🚪</span>
             Cerrar Sesión
           </button>
         </div>
@@ -79,7 +79,7 @@ export function Sidebar() {
                 pathname === item.href ? "text-[#e84118]" : "text-white/50"
               }`}
             >
-              <span className="text-lg">{item.icon}</span>
+              <span className="text-lg" suppressHydrationWarning>{item.icon}</span>
               {item.label}
             </Link>
           ))}
