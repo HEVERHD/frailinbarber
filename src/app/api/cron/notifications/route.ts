@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { sendWhatsAppMessage, buildReminderMessage } from "@/lib/twilio"
+import { formatTime } from "@/lib/utils"
+
+export const dynamic = "force-dynamic"
+
+export async function GET(req: NextRequest) {
+  // Verify cron secret
+  const authHeader = req.headers.get("authorization")
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const now = new Date()
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+  const fifteenMinBuffer = new Date(now.getTime() + 45 * 60 * 1000)
+
+  // Find appointments in the next 45-75 min window that haven't been notified
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      date: { gte: fifteenMinBuffer, lte: oneHourLater },
+      status: { in: ["PENDING", "CONFIRMED"] },
+      notified: false,
+    },
+    include: { user: true, service: true },
+  })
+
+  const settings = await prisma.barberSettings.findFirst()
+  let sent = 0
+
+  for (const appointment of appointments) {
+    if (appointment.user.phone) {
+      try {
+        const message = buildReminderMessage(
+          appointment.user.name || "Cliente",
+          appointment.service.name,
+          formatTime(appointment.date),
+          settings?.shopName || "Mi Barbería"
+        )
+        await sendWhatsAppMessage(appointment.user.phone, message)
+        sent++
+      } catch (error) {
+        console.error(`Error sending reminder for appointment ${appointment.id}:`, error)
+      }
+    }
+
+    await prisma.appointment.update({
+      where: { id: appointment.id },
+      data: { notified: true },
+    })
+  }
+
+  return NextResponse.json({
+    checked: appointments.length,
+    sent,
+    timestamp: now.toISOString(),
+  })
+}
