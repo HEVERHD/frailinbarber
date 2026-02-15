@@ -1,38 +1,32 @@
-const CACHE_NAME = "frailin-v1"
+const CACHE_NAME = "frailin-v2"
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting()
+  // Clear old caches on install
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((key) => caches.delete(key)))
+    ).then(() => self.skipWaiting())
+  )
 })
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(clients.claim())
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+    ).then(() => clients.claim())
+  )
 })
 
 self.addEventListener("fetch", (event) => {
-  // Network-first strategy for API calls
-  if (event.request.url.includes("/api/")) {
-    return
-  }
+  if (!event.request.url.startsWith("http")) return
 
-  // Cache-first for static assets
-  if (
-    event.request.url.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?)$/) ||
-    event.request.url.includes("/_next/static/")
-  ) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached
-        return fetch(event.request).then((response) => {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone))
-          return response
-        })
-      })
-    )
-    return
-  }
+  // Never cache in development
+  if (event.request.url.includes("localhost")) return
 
-  // Network-first for everything else
+  // Never cache API calls or Next.js internals
+  if (event.request.url.includes("/api/") || event.request.url.includes("/_next/")) return
+
+  // Network-first for pages
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   )
