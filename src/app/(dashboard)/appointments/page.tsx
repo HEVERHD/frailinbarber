@@ -60,6 +60,8 @@ export default function AppointmentsPage() {
     notes: "",
   })
   const [formError, setFormError] = useState("")
+  const [clientResults, setClientResults] = useState<any[]>([])
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
   const { toast } = useToast()
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
@@ -87,6 +89,21 @@ export default function AppointmentsPage() {
       .then((r) => r.json())
       .then(setServices)
   }, [])
+
+  // Search clients as user types
+  useEffect(() => {
+    if (newApt.clientName.length >= 2) {
+      fetch(`/api/clients?search=${encodeURIComponent(newApt.clientName)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setClientResults(data)
+          setShowClientDropdown(data.length > 0)
+        })
+    } else {
+      setClientResults([])
+      setShowClientDropdown(false)
+    }
+  }, [newApt.clientName])
 
   const fetchAppointments = async () => {
     setLoading(true)
@@ -229,13 +246,35 @@ export default function AppointmentsPage() {
         <div className="bg-[#2d1515] rounded-xl p-4 sm:p-6 border border-[#3d2020] mb-4">
           <h3 className="font-semibold mb-3 text-white text-sm">Agendar cita manual</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="Nombre del cliente"
-              value={newApt.clientName}
-              onChange={(e) => setNewApt({ ...newApt, clientName: e.target.value })}
-              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 text-sm"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscar cliente..."
+                value={newApt.clientName}
+                onChange={(e) => setNewApt({ ...newApt, clientName: e.target.value })}
+                onFocus={() => clientResults.length > 0 && setShowClientDropdown(true)}
+                onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
+                className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 text-sm"
+              />
+              {showClientDropdown && (
+                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[#2d1515] border border-[#3d2020] rounded-xl overflow-hidden shadow-lg max-h-48 overflow-y-auto">
+                  {clientResults.map((c: any) => (
+                    <button
+                      key={c.id}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setNewApt({ ...newApt, clientName: c.name || "", phone: c.phone || "" })
+                        setShowClientDropdown(false)
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-[#3d2020] transition border-b border-[#3d2020] last:border-0"
+                    >
+                      <p className="text-sm font-medium text-white">{c.name || "Sin nombre"}</p>
+                      <p className="text-xs text-white/40">{c.phone || c.email || "Sin contacto"}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               type="tel"
               placeholder="WhatsApp (+57...)"

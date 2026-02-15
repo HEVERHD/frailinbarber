@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url)
   const clientId = searchParams.get("id")
+  const search = searchParams.get("search")
 
   // Single client detail with appointment history
   if (clientId) {
@@ -54,6 +55,21 @@ export async function GET(req: NextRequest) {
         lastVisit: completedApts[0]?.date || null,
       },
     })
+  }
+
+  // Quick search for autocomplete
+  if (search) {
+    const results = await prisma.user.findMany({
+      where: {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search } },
+        ],
+      },
+      select: { id: true, name: true, phone: true, email: true },
+      take: 5,
+    })
+    return NextResponse.json(results)
   }
 
   // List all clients with summary stats
