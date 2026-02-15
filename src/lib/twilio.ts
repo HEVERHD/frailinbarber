@@ -43,6 +43,18 @@ export function buildConfirmationMessage(
   return `✅ *Cita Confirmada*\n\nHola ${clientName}, tu cita ha sido agendada:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}\n\n¡Te esperamos!`
 }
 
+export function buildBarberNotification(
+  clientName: string,
+  serviceName: string,
+  date: string,
+  time: string,
+  price: string,
+  bookedBy: string
+): string {
+  const source = bookedBy === "CLIENT" ? "desde la web" : "manual"
+  return `🔔 *Nueva Cita Agendada* (${source})\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💰 Precio: ${price}\n\n¡Revisa tu agenda!`
+}
+
 export function buildReminderMessage(
   clientName: string,
   serviceName: string,

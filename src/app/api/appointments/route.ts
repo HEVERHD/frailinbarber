@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, buildConfirmationMessage } from "@/lib/twilio"
-import { formatDate, formatTime } from "@/lib/utils"
+import { sendWhatsAppMessage, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
+import { formatDate, formatTime, formatCurrency } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -146,21 +146,48 @@ export async function POST(req: NextRequest) {
     include: { service: true, user: true },
   })
 
-  // Send WhatsApp confirmation
+  // Send WhatsApp confirmation to client + notification to barber
+  const settings = await prisma.barberSettings.findFirst()
+  const shopName = settings?.shopName || "Mi Barbería"
+
   if (user.phone) {
-    const settings = await prisma.barberSettings.findFirst()
     try {
       const message = buildConfirmationMessage(
         user.name || "Cliente",
         appointment.service.name,
         formatDate(appointment.date),
         formatTime(appointment.date),
-        settings?.shopName || "Mi Barbería"
+        shopName
       )
       await sendWhatsAppMessage(user.phone, message)
     } catch (error) {
-      console.error("Error sending WhatsApp:", error)
+      console.error("Error sending WhatsApp to client:", error)
     }
+  }
+
+  // Notify barbers via WhatsApp
+  try {
+    const barbers = await prisma.user.findMany({
+      where: { role: "BARBER", phone: { not: null } },
+      select: { phone: true },
+    })
+    const barberMsg = buildBarberNotification(
+      user.name || "Cliente",
+      appointment.service.name,
+      formatDate(appointment.date),
+      formatTime(appointment.date),
+      formatCurrency(appointment.service.price),
+      body.bookedBy || "CLIENT"
+    )
+    for (const barber of barbers) {
+      if (barber.phone) {
+        sendWhatsAppMessage(barber.phone, barberMsg).catch((err) =>
+          console.error("Error notifying barber:", err)
+        )
+      }
+    }
+  } catch (error) {
+    console.error("Error notifying barbers:", error)
   }
 
   return NextResponse.json(appointment, { status: 201 })
