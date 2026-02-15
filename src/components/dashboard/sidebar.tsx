@@ -12,6 +12,7 @@ const navItems = [
   { href: "/services", label: "Servicios", icon: "✂️" },
   { href: "/blocked-slots", label: "Bloqueos", icon: "🚫" },
   { href: "/users", label: "Usuarios", icon: "🔑" },
+  { href: "/profile", label: "Mi Perfil", icon: "👤" },
   { href: "/settings", label: "Configuración", icon: "⚙️" },
 ]
 
