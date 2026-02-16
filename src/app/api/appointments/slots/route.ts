@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { generateTimeSlots } from "@/lib/utils"
+import { parseColombia, getColombiaTime, getColombiaDayOfWeek } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -13,15 +13,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "date and serviceId required" }, { status: 400 })
   }
 
-  const date = new Date(dateStr + "T00:00:00")
-  const nextDay = new Date(dateStr + "T23:59:59")
+  const dayStart = parseColombia(dateStr + "T00:00:00")
+  const dayEnd = parseColombia(dateStr + "T23:59:59")
 
   const [settings, service, appointments, blockedSlots] = await Promise.all([
     prisma.barberSettings.findFirst(),
     prisma.service.findUnique({ where: { id: serviceId } }),
     prisma.appointment.findMany({
       where: {
-        date: { gte: date, lt: nextDay },
+        date: { gte: dayStart, lt: dayEnd },
         status: { in: ["PENDING", "CONFIRMED"] },
       },
       include: { service: true },
@@ -35,9 +35,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Settings or service not found" }, { status: 404 })
   }
 
-  // Check if it's a day off
+  // Check if it's a day off (use Colombia timezone for day of week)
   const daysOff = settings.daysOff.split(",").map(Number)
-  if (daysOff.includes(date.getDay())) {
+  if (daysOff.includes(getColombiaDayOfWeek(dayStart))) {
     return NextResponse.json({ slots: [], dayOff: true })
   }
 
@@ -47,37 +47,40 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ slots: [], dayOff: false, blocked: true })
   }
 
-  const bookedSlots = appointments.map((a) => a.date)
-  let slots = generateTimeSlots(
-    settings.openTime,
-    settings.closeTime,
-    service.duration,
-    bookedSlots,
-    date
-  )
+  // Generate time slots
+  const [openH, openM] = settings.openTime.split(":").map(Number)
+  const [closeH, closeM] = settings.closeTime.split(":").map(Number)
+  const startMinutes = openH * 60 + openM
+  const endMinutes = closeH * 60 + closeM
 
-  // Filter out blocked time ranges
-  if (blockedSlots.length > 0) {
-    slots = slots.filter((slot) => {
-      return !blockedSlots.some((blocked) => {
-        return slot >= blocked.startTime && slot < blocked.endTime
-      })
-    })
-  }
+  const slots: string[] = []
 
-  // Also filter out slots that would overlap with existing appointments (duration-aware)
-  slots = slots.filter((slot) => {
-    const [slotH, slotM] = slot.split(":").map(Number)
-    const slotStart = slotH * 60 + slotM
+  for (let m = startMinutes; m + service.duration <= endMinutes; m += service.duration) {
+    const hour = Math.floor(m / 60)
+    const min = m % 60
+    const timeStr = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`
+
+    // Check if slot overlaps with existing appointments (using Colombia time)
+    const slotStart = hour * 60 + min
     const slotEnd = slotStart + service.duration
 
-    return !appointments.some((apt) => {
-      const aptDate = new Date(apt.date)
-      const aptStart = aptDate.getHours() * 60 + aptDate.getMinutes()
+    const isBooked = appointments.some((apt) => {
+      const aptTime = getColombiaTime(new Date(apt.date))
+      const aptStart = aptTime.hours * 60 + aptTime.minutes
       const aptEnd = aptStart + apt.service.duration
       return slotStart < aptEnd && slotEnd > aptStart
     })
-  })
+
+    // Check if slot is blocked
+    const isBlocked = blockedSlots.some((blocked) => {
+      if (blocked.allDay) return true
+      return timeStr >= blocked.startTime && timeStr < blocked.endTime
+    })
+
+    if (!isBooked && !isBlocked) {
+      slots.push(timeStr)
+    }
+  }
 
   return NextResponse.json({ slots, dayOff: false })
 }

@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
-import { formatDate, formatTime, formatCurrency } from "@/lib/utils"
+import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -22,16 +22,15 @@ export async function GET(req: NextRequest) {
   const where: any = {}
 
   if (startDate && endDate) {
-    // Date range query (for weekly calendar)
     where.date = {
-      gte: new Date(startDate + "T00:00:00"),
-      lt: new Date(endDate + "T23:59:59"),
+      gte: parseColombia(startDate + "T00:00:00"),
+      lt: parseColombia(endDate + "T23:59:59"),
     }
   } else if (dateStr) {
-    // Parse as local date (noon to avoid timezone shifts)
-    const date = new Date(dateStr + "T00:00:00")
-    const nextDay = new Date(dateStr + "T23:59:59")
-    where.date = { gte: date, lt: nextDay }
+    where.date = {
+      gte: parseColombia(dateStr + "T00:00:00"),
+      lt: parseColombia(dateStr + "T23:59:59"),
+    }
   }
 
   if (status) {
@@ -70,7 +69,6 @@ export async function POST(req: NextRequest) {
       },
     })
   } else {
-    // Update phone if missing
     if (!user.phone && body.phone) {
       user = await prisma.user.update({
         where: { id: user.id },
@@ -79,21 +77,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Get service duration for conflict check
   const service = await prisma.service.findUnique({ where: { id: body.serviceId } })
   if (!service) {
     return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
   }
 
-  const appointmentDate = new Date(body.date)
+  // Parse as Colombia time
+  const appointmentDate = parseColombia(body.date)
   const appointmentEnd = new Date(appointmentDate.getTime() + service.duration * 60000)
+
+  // Get the date string in Colombia timezone for querying
+  const colombiaDateStr = getColombiaDateStr(appointmentDate)
 
   // Check for conflicting appointments (overlapping time slots)
   const existingAppointments = await prisma.appointment.findMany({
     where: {
       date: {
-        gte: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate()),
-        lt: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate() + 1),
+        gte: parseColombia(colombiaDateStr + "T00:00:00"),
+        lt: parseColombia(colombiaDateStr + "T23:59:59"),
       },
       status: { in: ["PENDING", "CONFIRMED"] },
     },
@@ -116,10 +117,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Check for blocked slots
-  const dateStr2 = body.date.split("T")[0]
-  const timeStr = `${appointmentDate.getHours().toString().padStart(2, "0")}:${appointmentDate.getMinutes().toString().padStart(2, "0")}`
+  const colTime = getColombiaTime(appointmentDate)
+  const timeStr = `${colTime.hours.toString().padStart(2, "0")}:${colTime.minutes.toString().padStart(2, "0")}`
   const blockedSlots = await prisma.blockedSlot.findMany({
-    where: { date: dateStr2 },
+    where: { date: colombiaDateStr },
   })
 
   const isBlocked = blockedSlots.some((blocked) => {
