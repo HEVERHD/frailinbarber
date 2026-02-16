@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
 
   const slots: string[] = []
 
-  for (let m = startMinutes; m + service.duration <= endMinutes; m += service.duration) {
+  const SLOT_INTERVAL = 15 // fixed 15-minute intervals
+  for (let m = startMinutes; m + service.duration <= endMinutes; m += SLOT_INTERVAL) {
     const hour = Math.floor(m / 60)
     const min = m % 60
     const timeStr = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`

@@ -66,6 +66,9 @@ export default function AppointmentsPage() {
   const [creating, setCreating] = useState(false)
   const [clientResults, setClientResults] = useState<any[]>([])
   const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const [slots, setSlots] = useState<string[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [dayOff, setDayOff] = useState(false)
   const { toast } = useToast()
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
@@ -100,6 +103,32 @@ export default function AppointmentsPage() {
         }
       })
   }, [])
+
+  // Fetch available slots when date or service changes
+  const fetchSlots = async () => {
+    if (!newApt.serviceId) {
+      setSlots([])
+      return
+    }
+    setLoadingSlots(true)
+    try {
+      const res = await fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${newApt.serviceId}`)
+      const data = await res.json()
+      setSlots(data.slots || [])
+      setDayOff(data.dayOff || false)
+    } catch {
+      setSlots([])
+    } finally {
+      setLoadingSlots(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showNewForm) {
+      setNewApt((prev) => ({ ...prev, time: "" }))
+      fetchSlots()
+    }
+  }, [selectedDate, newApt.serviceId, showNewForm])
 
   // Search clients as user types
   useEffect(() => {
@@ -183,6 +212,7 @@ export default function AppointmentsPage() {
 
       setNewApt({ clientName: "", phone: "", serviceId: "", time: "", notes: "" })
       setShowNewForm(false)
+      setSlots([])
       toast("Cita creada exitosamente ✓")
       fetchAppointments()
       fetchWeekAppointments()
@@ -315,18 +345,36 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
-            <div className="relative">
-              <label className="absolute -top-2 left-3 px-1 bg-[#2d1515] text-[10px] text-white/50 z-10">
-                Hora ({to12Hour(businessHours.openTime)} - {to12Hour(businessHours.closeTime)})
+            <div className="sm:col-span-2">
+              <label className="text-[10px] text-white/50 mb-2 block">
+                Hora disponible {newApt.time && `— ${to12Hour(newApt.time)}`}
               </label>
-              <input
-                type="time"
-                min={businessHours.openTime}
-                max={businessHours.closeTime}
-                value={newApt.time}
-                onChange={(e) => setNewApt({ ...newApt, time: e.target.value })}
-                className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
-              />
+              {!newApt.serviceId ? (
+                <p className="text-white/30 text-xs py-2">Selecciona un servicio primero</p>
+              ) : loadingSlots ? (
+                <div className="py-3"><Loader /></div>
+              ) : dayOff ? (
+                <p className="text-yellow-400 text-xs py-2">Este día no hay servicio</p>
+              ) : slots.length === 0 ? (
+                <p className="text-red-400 text-xs py-2">No hay horarios disponibles</p>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 max-h-40 overflow-y-auto">
+                  {slots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setNewApt({ ...newApt, time: slot })}
+                      className={`py-2 rounded-xl border text-xs font-medium transition ${
+                        newApt.time === slot
+                          ? "border-[#e84118] bg-[#e84118] text-white"
+                          : "border-[#3d2020] text-white/70 hover:border-[#e84118] hover:text-white"
+                      }`}
+                    >
+                      {to12Hour(slot)}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <input
               type="text"
