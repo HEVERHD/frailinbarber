@@ -128,7 +128,7 @@ export default function SettingsPage() {
                 type="time"
                 value={settings.openTime}
                 onChange={(e) => setSettings({ ...settings, openTime: e.target.value })}
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
               />
             </div>
             <div>
@@ -137,7 +137,7 @@ export default function SettingsPage() {
                 type="time"
                 value={settings.closeTime}
                 onChange={(e) => setSettings({ ...settings, closeTime: e.target.value })}
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
               />
             </div>
           </div>

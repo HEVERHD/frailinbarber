@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { to12Hour } from "@/lib/utils"
 
 type Service = {
   id: string
@@ -186,7 +187,13 @@ export default function BookingPage() {
             <div>
               <h2 className="text-xl font-bold mb-4">Selecciona la hora</h2>
               {loading ? (
-                <div className="text-center py-8 text-gray-400">Cargando horarios...</div>
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <div className="relative w-8 h-8">
+                    <div className="absolute inset-0 rounded-full border-2 border-gray-200" />
+                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#e84118] animate-spin" />
+                  </div>
+                  <p className="text-sm text-gray-400">Cargando horarios...</p>
+                </div>
               ) : dayOff ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">Este día no hay servicio</p>
@@ -220,7 +227,7 @@ export default function BookingPage() {
                             : "border-gray-200 hover:border-[#e84118]"
                         }`}
                       >
-                        {slot}
+                        {to12Hour(slot)}
                       </button>
                     ))}
                   </div>
@@ -319,7 +326,7 @@ export default function BookingPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Hora</span>
-                  <span className="font-medium">{selectedTime}</span>
+                  <span className="font-medium">{selectedTime ? to12Hour(selectedTime) : ""}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Duración</span>

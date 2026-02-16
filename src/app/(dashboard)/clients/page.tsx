@@ -200,7 +200,7 @@ export default function ClientsPage() {
                         {new Date(apt.date).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
                       </p>
                       <p className="text-sm font-medium text-white">
-                        {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true })}
                       </p>
                     </div>
                     <div>

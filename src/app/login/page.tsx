@@ -1,9 +1,16 @@
 "use client"
 
 import { signIn } from "next-auth/react"
+import { useSearchParams } from "next/navigation"
 import Image from "next/image"
+import { Suspense } from "react"
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams()
+  const callbackUrl = searchParams.get("callbackUrl")
+  const error = searchParams.get("error")
+  const wasRedirected = !!callbackUrl || error === "unauthorized"
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0a0a] to-[#2d1515]">
       <div className="bg-[#2d1515] border border-[#3d2020] rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
@@ -12,6 +19,14 @@ export default function LoginPage() {
           <span className="text-[#e84118]">Frailin</span> Studio
         </h1>
         <p className="text-white/40 mb-8">Acceso para barberos</p>
+
+        {wasRedirected && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+            <p className="text-sm text-red-400">
+              No tienes permisos para acceder al panel de administración. Contacta al barbero si crees que es un error.
+            </p>
+          </div>
+        )}
 
         <button
           onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
@@ -31,5 +46,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }

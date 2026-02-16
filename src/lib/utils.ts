@@ -67,6 +67,21 @@ export function getColombiaDayOfWeek(date: Date): number {
   return map[dayStr] ?? 0
 }
 
+/** Convert "09:00" → "9:00 AM", "19:00" → "7:00 PM" */
+export function to12Hour(time24: string): string {
+  const [h, m] = time24.split(":").map(Number)
+  const period = h >= 12 ? "PM" : "AM"
+  const hour12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${hour12}:${m.toString().padStart(2, "0")} ${period}`
+}
+
+/** Convert hour number (0-23) to "7:00 AM" format */
+export function hourTo12(hour: number): string {
+  const period = hour >= 12 ? "PM" : "AM"
+  const h = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour
+  return `${h}:00 ${period}`
+}
+
 export function generateTimeSlots(
   openTime: string,
   closeTime: string,

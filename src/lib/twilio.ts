@@ -38,9 +38,15 @@ export function buildConfirmationMessage(
   serviceName: string,
   date: string,
   time: string,
-  shopName: string
+  shopName: string,
+  appointmentLink?: string
 ): string {
-  return `✅ *Cita Confirmada*\n\nHola ${clientName}, tu cita ha sido agendada:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}\n\n¡Te esperamos!`
+  let msg = `✅ *Cita Confirmada*\n\nHola ${clientName}, tu cita ha sido agendada:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}`
+  if (appointmentLink) {
+    msg += `\n\n🔗 Ver o cancelar tu cita:\n${appointmentLink}`
+  }
+  msg += `\n\n¡Te esperamos!`
+  return msg
 }
 
 export function buildBarberNotification(

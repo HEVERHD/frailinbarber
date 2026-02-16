@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
-import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr } from "@/lib/utils"
+import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -89,6 +89,34 @@ export async function POST(req: NextRequest) {
   // Get the date string in Colombia timezone for querying
   const colombiaDateStr = getColombiaDateStr(appointmentDate)
 
+  // Validate against barber settings (business hours + days off)
+  const settings = await prisma.barberSettings.findFirst()
+  if (settings) {
+    // Check day off
+    const daysOff = settings.daysOff.split(",").map(Number)
+    if (daysOff.includes(getColombiaDayOfWeek(appointmentDate))) {
+      return NextResponse.json(
+        { error: "Este día no hay servicio. Selecciona otro día." },
+        { status: 400 }
+      )
+    }
+
+    // Check business hours
+    const colTime = getColombiaTime(appointmentDate)
+    const aptMinutes = colTime.hours * 60 + colTime.minutes
+    const [openH, openM] = settings.openTime.split(":").map(Number)
+    const [closeH, closeM] = settings.closeTime.split(":").map(Number)
+    const openMinutes = openH * 60 + openM
+    const closeMinutes = closeH * 60 + closeM
+
+    if (aptMinutes < openMinutes || aptMinutes + service.duration > closeMinutes) {
+      return NextResponse.json(
+        { error: `Horario fuera de servicio. Atendemos de ${to12Hour(settings.openTime)} a ${to12Hour(settings.closeTime)}.` },
+        { status: 400 }
+      )
+    }
+  }
+
   // Check for conflicting appointments (overlapping time slots)
   const existingAppointments = await prisma.appointment.findMany({
     where: {
@@ -147,8 +175,11 @@ export async function POST(req: NextRequest) {
     include: { service: true, user: true },
   })
 
+  // Build appointment link for client
+  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const appointmentLink = `${baseUrl}/cita/${appointment.token}`
+
   // Send WhatsApp confirmation to client + notification to barber
-  const settings = await prisma.barberSettings.findFirst()
   const shopName = settings?.shopName || "Mi Barbería"
 
   if (user.phone) {
@@ -158,7 +189,8 @@ export async function POST(req: NextRequest) {
         appointment.service.name,
         formatDate(appointment.date),
         formatTime(appointment.date),
-        shopName
+        shopName,
+        appointmentLink
       )
       await sendWhatsAppMessage(user.phone, message)
     } catch (error) {

@@ -191,7 +191,16 @@ export default function ConfirmPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-[#1a0a0a]">
-          <div className="animate-pulse text-white/30">Cargando...</div>
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 rounded-full border-2 border-[#3d2020]" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#e84118] animate-spin" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[#e84118] font-bold text-sm">Frailin</span>
+              <span className="text-white/60 font-medium text-sm">Studio</span>
+            </div>
+          </div>
         </div>
       }
     >

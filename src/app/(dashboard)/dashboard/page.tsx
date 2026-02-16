@@ -179,6 +179,7 @@ export default function DashboardPage() {
                     {new Date(apt.date).toLocaleTimeString("es-CO", {
                       hour: "2-digit",
                       minute: "2-digit",
+                      hour12: true,
                     })}
                   </p>
                   <span

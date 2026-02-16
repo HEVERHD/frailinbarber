@@ -73,6 +73,7 @@ model Service {
 
 model Appointment {
   id        String            @id @default(cuid())
+  token     String            @unique @default(cuid())
   date      DateTime
   status    AppointmentStatus @default(PENDING)
   notes     String?

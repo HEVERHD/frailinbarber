@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
 import { prisma } from "@/lib/prisma"
+import { to12Hour } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -257,7 +258,7 @@ export default async function Home() {
                   <div className="bg-[#1a0a0a] rounded-xl p-3 border border-[#3d2020]">
                     <p className="text-xs text-white/40">Horario</p>
                     <p className="text-sm font-medium text-white">
-                      {settings?.openTime || "09:00"} - {settings?.closeTime || "19:00"}
+                      {to12Hour(settings?.openTime || "09:00")} - {to12Hour(settings?.closeTime || "19:00")}
                     </p>
                   </div>
                   <div className="bg-[#1a0a0a] rounded-xl p-3 border border-[#3d2020]">

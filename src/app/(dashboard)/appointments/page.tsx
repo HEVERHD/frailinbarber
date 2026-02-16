@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { useToast } from "@/components/ui/toast"
+import { to12Hour, hourTo12 } from "@/lib/utils"
+import { Loader } from "@/components/ui/loader"
 
 type Appointment = {
   id: string
@@ -52,6 +54,7 @@ export default function AppointmentsPage() {
   const [view, setView] = useState<"list" | "week">("week")
 
   const [services, setServices] = useState<any[]>([])
+  const [businessHours, setBusinessHours] = useState({ openTime: "09:00", closeTime: "19:00" })
   const [newApt, setNewApt] = useState({
     clientName: "",
     phone: "",
@@ -60,6 +63,7 @@ export default function AppointmentsPage() {
     notes: "",
   })
   const [formError, setFormError] = useState("")
+  const [creating, setCreating] = useState(false)
   const [clientResults, setClientResults] = useState<any[]>([])
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const { toast } = useToast()
@@ -88,6 +92,13 @@ export default function AppointmentsPage() {
     fetch("/api/services")
       .then((r) => r.json())
       .then(setServices)
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.openTime && data.closeTime) {
+          setBusinessHours({ openTime: data.openTime, closeTime: data.closeTime })
+        }
+      })
   }, [])
 
   // Search clients as user types
@@ -141,35 +152,45 @@ export default function AppointmentsPage() {
   }
 
   const createAppointment = async () => {
-    if (!newApt.clientName || !newApt.phone || !newApt.serviceId || !newApt.time) return
+    if (!newApt.clientName || !newApt.phone || !newApt.serviceId || !newApt.time) {
+      setFormError("Completa todos los campos obligatorios")
+      return
+    }
     setFormError("")
+    setCreating(true)
 
     const dateTimeStr = `${selectedDate}T${newApt.time}:00`
 
-    const res = await fetch("/api/appointments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        clientName: newApt.clientName,
-        phone: newApt.phone,
-        serviceId: newApt.serviceId,
-        date: dateTimeStr,
-        bookedBy: "BARBER",
-        notes: newApt.notes,
-      }),
-    })
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: newApt.clientName,
+          phone: newApt.phone,
+          serviceId: newApt.serviceId,
+          date: dateTimeStr,
+          bookedBy: "BARBER",
+          notes: newApt.notes,
+        }),
+      })
 
-    if (!res.ok) {
-      const data = await res.json()
-      setFormError(data.error || "Error al crear la cita")
-      return
+      if (!res.ok) {
+        const data = await res.json()
+        setFormError(data.error || "Error al crear la cita")
+        return
+      }
+
+      setNewApt({ clientName: "", phone: "", serviceId: "", time: "", notes: "" })
+      setShowNewForm(false)
+      toast("Cita creada exitosamente ✓")
+      fetchAppointments()
+      fetchWeekAppointments()
+    } catch {
+      setFormError("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setCreating(false)
     }
-
-    setNewApt({ clientName: "", phone: "", serviceId: "", time: "", notes: "" })
-    setShowNewForm(false)
-    toast("Cita creada")
-    fetchAppointments()
-    fetchWeekAppointments()
   }
 
   const navigateWeek = (direction: number) => {
@@ -294,12 +315,19 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
-            <input
-              type="time"
-              value={newApt.time}
-              onChange={(e) => setNewApt({ ...newApt, time: e.target.value })}
-              className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm"
-            />
+            <div className="relative">
+              <label className="absolute -top-2 left-3 px-1 bg-[#2d1515] text-[10px] text-white/50 z-10">
+                Hora ({to12Hour(businessHours.openTime)} - {to12Hour(businessHours.closeTime)})
+              </label>
+              <input
+                type="time"
+                min={businessHours.openTime}
+                max={businessHours.closeTime}
+                value={newApt.time}
+                onChange={(e) => setNewApt({ ...newApt, time: e.target.value })}
+                className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
+              />
+            </div>
             <input
               type="text"
               placeholder="Notas (opcional)"
@@ -322,9 +350,10 @@ export default function AppointmentsPage() {
             </button>
             <button
               onClick={createAppointment}
-              className="px-4 py-2 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition"
+              disabled={creating}
+              className="px-4 py-2 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Agendar
+              {creating ? "Agendando..." : "Agendar"}
             </button>
           </div>
         </div>
@@ -403,7 +432,7 @@ export default function AppointmentsPage() {
                   {/* Time column */}
                   <div className="text-center min-w-[48px]">
                     <p className="text-sm font-bold text-white">
-                      {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true })}
                     </p>
                     <p className="text-[10px] text-white/30">{apt.service.duration}min</p>
                   </div>
@@ -518,7 +547,7 @@ export default function AppointmentsPage() {
               {HOURS.map((hour) => (
                 <div key={hour} className="grid grid-cols-[50px_repeat(7,1fr)] border-b border-[#3d2020]/50">
                   <div className="p-1 text-[10px] text-white/30 text-right pr-2 pt-2">
-                    {hour.toString().padStart(2, "0")}:00
+                    {hourTo12(hour)}
                   </div>
                   {weekDays.map((day) => {
                     const aptsInSlot = getAppointmentsForDayHour(day.date, hour)
@@ -592,7 +621,7 @@ export default function AppointmentsPage() {
 
             {/* Appointment list */}
             {loading ? (
-              <p className="text-white/30 text-center py-8">Cargando...</p>
+              <Loader />
             ) : appointments.length === 0 ? (
               <div className="text-center py-12 bg-[#2d1515] rounded-xl border border-[#3d2020]">
                 <p className="text-4xl mb-3">📅</p>

@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { to12Hour } from "@/lib/utils"
+import { Loader } from "@/components/ui/loader"
 
 type BlockedSlot = {
   id: string
@@ -105,7 +107,7 @@ export default function BlockedSlotsPage() {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+                className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
               />
             </div>
             <div className="flex items-center gap-3">
@@ -127,7 +129,7 @@ export default function BlockedSlotsPage() {
                     type="time"
                     value={form.startTime}
                     onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                    className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+                    className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
                   />
                 </div>
                 <div>
@@ -136,7 +138,7 @@ export default function BlockedSlotsPage() {
                     type="time"
                     value={form.endTime}
                     onChange={(e) => setForm({ ...form, endTime: e.target.value })}
-                    className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white"
+                    className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
                   />
                 </div>
               </>
@@ -171,7 +173,7 @@ export default function BlockedSlotsPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-white/30 text-center py-8">Cargando...</p>
+        <Loader />
       ) : blockedSlots.length === 0 ? (
         <div className="text-center py-12 bg-[#2d1515] rounded-xl border border-[#3d2020]">
           <p className="text-4xl mb-3">🚫</p>
@@ -193,7 +195,7 @@ export default function BlockedSlotsPage() {
                   <p className="text-sm text-white/40">
                     {slot.allDay
                       ? "Todo el día"
-                      : `${slot.startTime} - ${slot.endTime}`}
+                      : `${to12Hour(slot.startTime)} - ${to12Hour(slot.endTime)}`}
                     {slot.reason && ` · ${slot.reason}`}
                   </p>
                 </div>

@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import { useToast } from "@/components/ui/toast"
+import { LogOut } from "lucide-react"
 
 type ProfileStats = {
   totalAppointments: number
@@ -159,7 +160,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Quick actions */}
-      <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020]">
+      <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020] mb-6">
         <h3 className="font-semibold text-white mb-4">Accesos rapidos</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <a
@@ -206,6 +207,15 @@ export default function ProfilePage() {
           </a>
         </div>
       </div>
+
+      {/* Logout */}
+      <button
+        onClick={() => signOut({ callbackUrl: "/login" })}
+        className="w-full flex items-center justify-center gap-3 py-4 bg-[#2d1515] border border-[#3d2020] rounded-xl text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition font-medium"
+      >
+        <LogOut size={18} />
+        Cerrar Sesión
+      </button>
     </div>
   )
 }
