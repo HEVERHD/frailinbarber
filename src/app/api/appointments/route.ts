@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
 import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -175,24 +175,40 @@ export async function POST(req: NextRequest) {
     include: { service: true, user: true },
   })
 
-  // Build appointment link for client
-  const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000"
+  // Build appointment link for client (use public URL for WhatsApp, fallback to NEXTAUTH_URL)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
   const appointmentLink = `${baseUrl}/cita/${appointment.token}`
 
   // Send WhatsApp confirmation to client + notification to barber
   const shopName = settings?.shopName || "Mi Barbería"
 
+  const confirmationTemplateSid = process.env.TWILIO_TEMPLATE_CONFIRMATION
+  const barberTemplateSid = process.env.TWILIO_TEMPLATE_BARBER
+
   if (user.phone) {
     try {
-      const message = buildConfirmationMessage(
-        user.name || "Cliente",
-        appointment.service.name,
-        formatDate(appointment.date),
-        formatTime(appointment.date),
-        shopName,
-        appointmentLink
-      )
-      await sendWhatsAppMessage(user.phone, message)
+      if (confirmationTemplateSid) {
+        // Use approved WhatsApp template for business-initiated messages
+        // Template: Servicio: {{1}}, Fecha: {{2}}, Hora: {{3}}, Lugar: {{4}}, Link: {{5}}
+        await sendWhatsAppTemplate(user.phone, confirmationTemplateSid, {
+          "1": appointment.service.name,
+          "2": formatDate(appointment.date),
+          "3": formatTime(appointment.date),
+          "4": shopName,
+          "5": appointmentLink,
+        })
+      } else {
+        // Fallback to plain text (works for sandbox or user-initiated conversations)
+        const message = buildConfirmationMessage(
+          user.name || "Cliente",
+          appointment.service.name,
+          formatDate(appointment.date),
+          formatTime(appointment.date),
+          shopName,
+          appointmentLink
+        )
+        await sendWhatsAppMessage(user.phone, message)
+      }
     } catch (error) {
       console.error("Error sending WhatsApp to client:", error)
     }
@@ -204,19 +220,31 @@ export async function POST(req: NextRequest) {
       where: { role: "BARBER", phone: { not: null } },
       select: { phone: true },
     })
-    const barberMsg = buildBarberNotification(
-      user.name || "Cliente",
-      appointment.service.name,
-      formatDate(appointment.date),
-      formatTime(appointment.date),
-      formatCurrency(appointment.service.price),
-      body.bookedBy || "CLIENT"
-    )
+
     for (const barber of barbers) {
       if (barber.phone) {
-        sendWhatsAppMessage(barber.phone, barberMsg).catch((err) =>
-          console.error("Error notifying barber:", err)
-        )
+        if (barberTemplateSid) {
+          // Template: Cliente: {{1}}, Servicio: {{2}}, Fecha: {{3}}, Hora: {{4}}, Precio: {{5}}
+          sendWhatsAppTemplate(barber.phone, barberTemplateSid, {
+            "1": user.name || "Cliente",
+            "2": appointment.service.name,
+            "3": formatDate(appointment.date),
+            "4": formatTime(appointment.date),
+            "5": formatCurrency(appointment.service.price),
+          }).catch((err) => console.error("Error notifying barber:", err))
+        } else {
+          const barberMsg = buildBarberNotification(
+            user.name || "Cliente",
+            appointment.service.name,
+            formatDate(appointment.date),
+            formatTime(appointment.date),
+            formatCurrency(appointment.service.price),
+            body.bookedBy || "CLIENT"
+          )
+          sendWhatsAppMessage(barber.phone, barberMsg).catch((err) =>
+            console.error("Error notifying barber:", err)
+          )
+        }
       }
     }
   } catch (error) {

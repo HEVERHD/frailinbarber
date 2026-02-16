@@ -7,18 +7,21 @@ const client = twilio(
 
 const from = process.env.TWILIO_WHATSAPP_FROM || "whatsapp:+14155238886"
 
+function formatPhone(to: string): string {
+  let phone = to.replace(/\s+/g, "").replace(/^0+/, "")
+  if (!phone.startsWith("+")) {
+    phone = phone.startsWith("57") ? `+${phone}` : `+57${phone}`
+  }
+  return phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`
+}
+
 export async function sendWhatsAppMessage(to: string, message: string) {
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
     console.log(`[WhatsApp Mock] To: ${to} | Message: ${message}`)
     return
   }
 
-  // Ensure phone has Colombia country code (+57)
-  let phone = to.replace(/\s+/g, "").replace(/^0+/, "")
-  if (!phone.startsWith("+")) {
-    phone = phone.startsWith("57") ? `+${phone}` : `+57${phone}`
-  }
-  const formattedTo = phone.startsWith("whatsapp:") ? phone : `whatsapp:${phone}`
+  const formattedTo = formatPhone(to)
 
   try {
     const msg = await client.messages.create({
@@ -29,6 +32,33 @@ export async function sendWhatsAppMessage(to: string, message: string) {
     console.log(`[WhatsApp] Sent to ${formattedTo} | SID: ${msg.sid}`)
   } catch (error: any) {
     console.error(`[WhatsApp Error] ${error.message}`)
+    throw error
+  }
+}
+
+/** Send a WhatsApp message using a Twilio Content Template (for business-initiated messages) */
+export async function sendWhatsAppTemplate(
+  to: string,
+  contentSid: string,
+  variables: Record<string, string>
+) {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    console.log(`[WhatsApp Mock Template] To: ${to} | Template: ${contentSid} | Vars: ${JSON.stringify(variables)}`)
+    return
+  }
+
+  const formattedTo = formatPhone(to)
+
+  try {
+    const msg = await client.messages.create({
+      from,
+      to: formattedTo,
+      contentSid,
+      contentVariables: JSON.stringify(variables),
+    })
+    console.log(`[WhatsApp Template] Sent to ${formattedTo} | SID: ${msg.sid}`)
+  } catch (error: any) {
+    console.error(`[WhatsApp Template Error] ${error.message}`)
     throw error
   }
 }
