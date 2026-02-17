@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     include: {
       service: { select: { name: true, duration: true, price: true } },
       user: { select: { name: true } },
+      barber: { select: { name: true } },
     },
   })
 
@@ -22,7 +23,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Cita no encontrada" }, { status: 404 })
   }
 
-  const settings = await prisma.barberSettings.findFirst()
+  const settings = await prisma.barberSettings.findUnique({
+    where: { userId: appointment.barberId },
+  })
 
   return NextResponse.json({
     id: appointment.id,
@@ -30,6 +33,7 @@ export async function GET(req: NextRequest) {
     status: appointment.status,
     service: appointment.service,
     user: appointment.user,
+    barber: appointment.barber,
     shopName: settings?.shopName || "Frailin Studio",
   })
 }

@@ -3,6 +3,15 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { to12Hour } from "@/lib/utils"
+import Image from "next/image"
+
+type Barber = {
+  id: string
+  name: string | null
+  image: string | null
+  avatarUrl: string | null
+  specialty: string | null
+}
 
 type Service = {
   id: string
@@ -12,11 +21,13 @@ type Service = {
   duration: number
 }
 
-type Step = "service" | "date" | "time" | "info" | "confirm"
+type Step = "barber" | "service" | "date" | "time" | "info" | "confirm"
 
 export default function BookingPage() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("service")
+  const [step, setStep] = useState<Step>("barber")
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null)
   const [services, setServices] = useState<Service[]>([])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedDate, setSelectedDate] = useState("")
@@ -35,16 +46,32 @@ export default function BookingPage() {
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
   const [waitlistDone, setWaitlistDone] = useState(false)
 
+  // Fetch barbers on mount
   useEffect(() => {
-    fetch("/api/services")
+    fetch("/api/barbers")
       .then((r) => r.json())
-      .then(setServices)
+      .then((data: Barber[]) => {
+        setBarbers(data)
+        // Auto-select if only one barber
+        if (data.length === 1) {
+          setSelectedBarber(data[0])
+          setStep("service")
+        }
+      })
   }, [])
 
   useEffect(() => {
-    if (selectedDate && selectedService) {
+    if (step === "service" && services.length === 0) {
+      fetch("/api/services")
+        .then((r) => r.json())
+        .then(setServices)
+    }
+  }, [step, services.length])
+
+  useEffect(() => {
+    if (selectedDate && selectedService && selectedBarber) {
       setLoading(true)
-      fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${selectedService.id}`)
+      fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${selectedService.id}&barberId=${selectedBarber.id}`)
         .then((r) => r.json())
         .then((data) => {
           setSlots(data.slots)
@@ -52,10 +79,10 @@ export default function BookingPage() {
           setLoading(false)
         })
     }
-  }, [selectedDate, selectedService])
+  }, [selectedDate, selectedService, selectedBarber])
 
   const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone) return
+    if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone || !selectedBarber) return
     setSubmitting(true)
 
     const dateTimeStr = `${selectedDate}T${selectedTime}:00`
@@ -65,6 +92,7 @@ export default function BookingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         serviceId: selectedService.id,
+        barberId: selectedBarber.id,
         date: dateTimeStr,
         clientName,
         phone: clientPhone,
@@ -81,6 +109,7 @@ export default function BookingPage() {
         duration: selectedService.duration.toString(),
         price: selectedService.price.toString(),
         name: clientName,
+        barber: selectedBarber.name || "",
       })
       router.push(`/booking/confirm?${params.toString()}`)
     } else {
@@ -122,6 +151,12 @@ export default function BookingPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)
 
+  const progressSteps: Step[] = ["barber", "service", "date", "time", "info"]
+  // If only 1 barber, skip barber step in progress
+  const visibleProgressSteps = barbers.length <= 1
+    ? progressSteps.filter((s) => s !== "barber")
+    : progressSteps
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0a0a] to-[#2d1515]">
       <div className="max-w-lg mx-auto px-4 py-8">
@@ -135,20 +170,71 @@ export default function BookingPage() {
 
         {/* Progress */}
         <div className="flex justify-center gap-2 mb-8">
-          {(["service", "date", "time", "info"] as Step[]).map((s, i) => (
-            <div
-              key={s}
-              className={`h-2 w-12 rounded-full transition ${
-                (["service", "date", "time", "info", "confirm"] as Step[]).indexOf(step) >= i
-                  ? "bg-[#e84118]"
-                  : "bg-white/20"
-              }`}
-            />
-          ))}
+          {visibleProgressSteps.map((s, i) => {
+            const allSteps: Step[] = barbers.length <= 1
+              ? ["service", "date", "time", "info", "confirm"]
+              : ["barber", "service", "date", "time", "info", "confirm"]
+            return (
+              <div
+                key={s}
+                className={`h-2 w-12 rounded-full transition ${
+                  allSteps.indexOf(step) >= allSteps.indexOf(s)
+                    ? "bg-[#e84118]"
+                    : "bg-white/20"
+                }`}
+              />
+            )
+          })}
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-6">
+          {/* Step 0: Barber Selection */}
+          {step === "barber" && (
+            <div>
+              <h2 className="text-xl font-bold mb-4">Elige tu barbero</h2>
+              <div className="space-y-3">
+                {barbers.map((barber) => (
+                  <button
+                    key={barber.id}
+                    onClick={() => {
+                      setSelectedBarber(barber)
+                      setStep("service")
+                    }}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition hover:border-[#e84118] ${
+                      selectedBarber?.id === barber.id
+                        ? "border-[#e84118] bg-[#e84118]/5"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative w-14 h-14 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                        {barber.avatarUrl || barber.image ? (
+                          <Image
+                            src={barber.avatarUrl || barber.image || ""}
+                            alt={barber.name || "Barbero"}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400">
+                            {(barber.name || "B").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-lg">{barber.name || "Barbero"}</p>
+                        {barber.specialty && (
+                          <p className="text-sm text-gray-500">{barber.specialty}</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Step 1: Service */}
           {step === "service" && (
             <div>
@@ -182,6 +268,14 @@ export default function BookingPage() {
                   </button>
                 ))}
               </div>
+              {barbers.length > 1 && (
+                <button
+                  onClick={() => setStep("barber")}
+                  className="w-full mt-4 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition"
+                >
+                  Atrás
+                </button>
+              )}
             </div>
           )}
 
@@ -398,6 +492,12 @@ export default function BookingPage() {
             <div>
               <h2 className="text-xl font-bold mb-4">Confirma tu cita</h2>
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                {selectedBarber && barbers.length > 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Barbero</span>
+                    <span className="font-medium">{selectedBarber.name}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-500">Servicio</span>
                   <span className="font-medium">{selectedService?.name}</span>

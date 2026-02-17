@@ -38,7 +38,12 @@ export default function UsersPage() {
     })
 
     if (res.ok) {
-      toast(newRole === "BARBER" ? "Usuario promovido a Barbero" : "Rol cambiado a Cliente")
+      const labels: Record<string, string> = {
+        ADMIN: "Usuario promovido a Administrador",
+        BARBER: "Usuario promovido a Barbero",
+        CLIENT: "Rol cambiado a Cliente",
+      }
+      toast(labels[newRole] || "Rol actualizado")
       fetchUsers()
     } else {
       const data = await res.json()
@@ -104,12 +109,14 @@ export default function UsersPage() {
                     </p>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        user.role === "BARBER"
+                        user.role === "ADMIN"
+                          ? "bg-purple-900/30 text-purple-400"
+                          : user.role === "BARBER"
                           ? "bg-[#e84118]/20 text-[#e84118]"
                           : "bg-blue-900/30 text-blue-400"
                       }`}
                     >
-                      {user.role === "BARBER" ? "Barbero" : "Cliente"}
+                      {user.role === "ADMIN" ? "Admin" : user.role === "BARBER" ? "Barbero" : "Cliente"}
                     </span>
                   </div>
                   <p className="text-xs text-white/40 truncate">
@@ -129,21 +136,24 @@ export default function UsersPage() {
                 </div>
 
                 {/* Role toggle */}
-                <div className="flex-shrink-0">
-                  {user.role === "CLIENT" ? (
+                <div className="flex-shrink-0 flex gap-1.5">
+                  {user.role === "CLIENT" && (
                     <button
                       onClick={() => changeRole(user.id, "BARBER")}
                       className="px-3 py-2 text-xs font-medium rounded-lg bg-[#e84118] text-white hover:bg-[#c0392b] transition"
                     >
                       Hacer Barbero
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => changeRole(user.id, "CLIENT")}
-                      className="px-3 py-2 text-xs font-medium rounded-lg bg-[#3d2020] text-white/50 hover:bg-[#4d2c2c] transition"
-                    >
-                      Quitar Barbero
-                    </button>
+                  )}
+                  {user.role === "BARBER" && (
+                    <>
+                      <button
+                        onClick={() => changeRole(user.id, "CLIENT")}
+                        className="px-3 py-2 text-xs font-medium rounded-lg bg-[#3d2020] text-white/50 hover:bg-[#4d2c2c] transition"
+                      >
+                        Quitar
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

@@ -42,20 +42,26 @@ model VerificationToken {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  name          String?
-  email         String?       @unique
-  emailVerified DateTime?
-  phone         String?
-  image         String?
-  role          Role          @default(CLIENT)
-  appointments  Appointment[]
-  accounts      Account[]
-  sessions      Session[]
-  createdAt     DateTime      @default(now())
+  id                  String          @id @default(cuid())
+  name                String?
+  email               String?         @unique
+  emailVerified       DateTime?
+  phone               String?
+  image               String?
+  role                Role            @default(CLIENT)
+  avatarUrl           String?
+  specialty           String?
+  appointments        Appointment[]
+  barberAppointments  Appointment[]   @relation("BarberAppointments")
+  barberSettings      BarberSettings?
+  blockedSlots        BlockedSlot[]
+  accounts            Account[]
+  sessions            Session[]
+  createdAt           DateTime        @default(now())
 }
 
 enum Role {
+  ADMIN
   BARBER
   CLIENT
 }
@@ -84,11 +90,14 @@ model Appointment {
   user      User              @relation(fields: [userId], references: [id])
   serviceId String
   service   Service           @relation(fields: [serviceId], references: [id])
+  barberId  String
+  barber    User              @relation("BarberAppointments", fields: [barberId], references: [id])
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
 
   @@index([date])
   @@index([status])
+  @@index([barberId])
 }
 
 enum AppointmentStatus {
@@ -112,6 +121,8 @@ model BarberSettings {
   slotDuration Int    @default(30)
   daysOff      String @default("0")
   phone        String?
+  userId       String @unique
+  user         User   @relation(fields: [userId], references: [id])
 }
 
 model BlockedSlot {
@@ -121,9 +132,12 @@ model BlockedSlot {
   endTime   String               // HH:mm
   reason    String?
   allDay    Boolean  @default(false)
+  barberId  String
+  barber    User     @relation(fields: [barberId], references: [id])
   createdAt DateTime @default(now())
 
   @@index([date])
+  @@index([barberId])
 }
 
 model GalleryItem {

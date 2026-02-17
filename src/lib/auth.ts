@@ -22,7 +22,7 @@ export const authOptions: NextAuthOptions = {
         select: { role: true },
       })
       // If user doesn't exist yet (first login) or is CLIENT, block access
-      if (!dbUser || dbUser.role !== "BARBER") {
+      if (!dbUser || (dbUser.role !== "BARBER" && dbUser.role !== "ADMIN")) {
         return "/login?error=unauthorized"
       }
       return true

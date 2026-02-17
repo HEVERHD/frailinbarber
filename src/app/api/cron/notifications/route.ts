@@ -23,20 +23,27 @@ export async function GET(req: NextRequest) {
       status: { in: ["PENDING", "CONFIRMED"] },
       notified: false,
     },
-    include: { user: true, service: true },
+    include: {
+      user: true,
+      service: true,
+      barber: {
+        select: { name: true },
+        include: { barberSettings: true },
+      },
+    },
   })
 
-  const settings = await prisma.barberSettings.findFirst()
   let sent = 0
 
   for (const appointment of appointments) {
     if (appointment.user.phone) {
       try {
+        const shopName = (appointment.barber as any).barberSettings?.shopName || "Mi Barbería"
         const message = buildReminderMessage(
           appointment.user.name || "Cliente",
           appointment.service.name,
           formatTime(appointment.date),
-          settings?.shopName || "Mi Barbería"
+          shopName
         )
         await sendWhatsAppMessage(appointment.user.phone, message)
         sent++

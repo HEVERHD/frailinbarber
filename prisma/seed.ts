@@ -3,20 +3,29 @@ import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create default barber settings
-  const settings = await prisma.barberSettings.upsert({
-    where: { id: "default" },
-    update: {},
-    create: {
-      id: "default",
-      shopName: "Mi Barbería",
-      openTime: "09:00",
-      closeTime: "19:00",
-      slotDuration: 30,
-      daysOff: "0",
-    },
-  })
-  console.log("Settings created:", settings.shopName)
+  // Find or create an admin user for settings
+  let admin = await prisma.user.findFirst({ where: { role: "ADMIN" } })
+  if (!admin) {
+    admin = await prisma.user.findFirst({ where: { role: "BARBER" } })
+  }
+
+  if (admin) {
+    const settings = await prisma.barberSettings.upsert({
+      where: { userId: admin.id },
+      update: {},
+      create: {
+        shopName: "Mi Barbería",
+        openTime: "09:00",
+        closeTime: "19:00",
+        slotDuration: 30,
+        daysOff: "0",
+        userId: admin.id,
+      },
+    })
+    console.log("Settings created for:", admin.name, "-", settings.shopName)
+  } else {
+    console.log("No ADMIN or BARBER user found. Skipping settings seed.")
+  }
 
   // Create default services
   const services = [

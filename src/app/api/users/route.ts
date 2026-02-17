@@ -39,25 +39,47 @@ export async function PATCH(req: Request) {
     where: { email: session.user?.email || "" },
   })
 
-  if (!currentUser || currentUser.role !== "BARBER") {
-    return NextResponse.json({ error: "Solo barberos pueden cambiar roles" }, { status: 403 })
+  if (!currentUser || currentUser.role !== "ADMIN") {
+    return NextResponse.json({ error: "Solo el administrador puede cambiar roles" }, { status: 403 })
   }
 
   const { userId, role } = await req.json()
 
-  if (!userId || !role || !["BARBER", "CLIENT"].includes(role)) {
+  if (!userId || !role || !["ADMIN", "BARBER", "CLIENT"].includes(role)) {
     return NextResponse.json({ error: "Datos invalidos" }, { status: 400 })
   }
 
-  // Prevent removing your own BARBER role
-  if (userId === currentUser.id && role === "CLIENT") {
-    return NextResponse.json({ error: "No puedes quitarte el rol de barbero a ti mismo" }, { status: 400 })
+  // Prevent removing your own ADMIN role
+  if (userId === currentUser.id && role !== "ADMIN") {
+    return NextResponse.json({ error: "No puedes quitarte el rol de administrador" }, { status: 400 })
   }
 
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { role },
   })
+
+  // Auto-create BarberSettings when promoting to BARBER or ADMIN
+  if (role === "BARBER" || role === "ADMIN") {
+    const existingSettings = await prisma.barberSettings.findUnique({
+      where: { userId },
+    })
+    if (!existingSettings) {
+      const adminSettings = await prisma.barberSettings.findUnique({
+        where: { userId: currentUser.id },
+      })
+      await prisma.barberSettings.create({
+        data: {
+          shopName: adminSettings?.shopName || "Mi Barbería",
+          openTime: adminSettings?.openTime || "09:00",
+          closeTime: adminSettings?.closeTime || "19:00",
+          slotDuration: adminSettings?.slotDuration || 30,
+          daysOff: adminSettings?.daysOff || "0",
+          userId,
+        },
+      })
+    }
+  }
 
   return NextResponse.json(updated)
 }

@@ -13,11 +13,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
+  const role = (session.user as any).role
+  const userId = (session.user as any).id
   const { searchParams } = new URL(req.url)
   const dateStr = searchParams.get("date")
   const startDate = searchParams.get("startDate")
   const endDate = searchParams.get("endDate")
   const status = searchParams.get("status")
+  const barberId = searchParams.get("barberId")
 
   const where: any = {}
 
@@ -37,9 +40,17 @@ export async function GET(req: NextRequest) {
     where.status = status
   }
 
+  // ADMIN can see all or filter by barberId
+  if (role === "ADMIN") {
+    if (barberId) where.barberId = barberId
+  } else {
+    // BARBER only sees own appointments
+    where.barberId = userId
+  }
+
   const appointments = await prisma.appointment.findMany({
     where,
-    include: { user: true, service: true },
+    include: { user: true, service: true, barber: { select: { id: true, name: true } } },
     orderBy: { date: "asc" },
   })
 
@@ -48,6 +59,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
+
+  if (!body.barberId) {
+    return NextResponse.json({ error: "barberId es requerido" }, { status: 400 })
+  }
 
   // Find or create client user
   let user = await prisma.user.findFirst({
@@ -89,8 +104,10 @@ export async function POST(req: NextRequest) {
   // Get the date string in Colombia timezone for querying
   const colombiaDateStr = getColombiaDateStr(appointmentDate)
 
-  // Validate against barber settings (business hours + days off)
-  const settings = await prisma.barberSettings.findFirst()
+  // Validate against barber's specific settings
+  const settings = await prisma.barberSettings.findUnique({
+    where: { userId: body.barberId },
+  })
   if (settings) {
     // Check day off
     const daysOff = settings.daysOff.split(",").map(Number)
@@ -117,7 +134,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Check for conflicting appointments (overlapping time slots)
+  // Check for conflicting appointments for THIS barber only
   const existingAppointments = await prisma.appointment.findMany({
     where: {
       date: {
@@ -125,6 +142,7 @@ export async function POST(req: NextRequest) {
         lt: parseColombia(colombiaDateStr + "T23:59:59"),
       },
       status: { in: ["PENDING", "CONFIRMED"] },
+      barberId: body.barberId,
     },
     include: { service: true },
   })
@@ -144,11 +162,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Check for blocked slots
+  // Check for blocked slots for THIS barber only
   const colTime = getColombiaTime(appointmentDate)
   const timeStr = `${colTime.hours.toString().padStart(2, "0")}:${colTime.minutes.toString().padStart(2, "0")}`
   const blockedSlots = await prisma.blockedSlot.findMany({
-    where: { date: colombiaDateStr },
+    where: { date: colombiaDateStr, barberId: body.barberId },
   })
 
   const isBlocked = blockedSlots.some((blocked) => {
@@ -168,28 +186,26 @@ export async function POST(req: NextRequest) {
       date: appointmentDate,
       userId: user.id,
       serviceId: body.serviceId,
+      barberId: body.barberId,
       bookedBy: body.bookedBy || "CLIENT",
       notes: body.notes || null,
       status: "CONFIRMED",
     },
-    include: { service: true, user: true },
+    include: { service: true, user: true, barber: { select: { id: true, name: true, phone: true } } },
   })
 
-  // Build appointment link for client (use public URL for WhatsApp, fallback to NEXTAUTH_URL)
+  // Build appointment link for client
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
   const appointmentLink = `${baseUrl}/cita/${appointment.token}`
 
-  // Send WhatsApp confirmation to client + notification to barber
+  // Send WhatsApp confirmation to client
   const shopName = settings?.shopName || "Mi Barbería"
-
   const confirmationTemplateSid = process.env.TWILIO_TEMPLATE_CONFIRMATION
   const barberTemplateSid = process.env.TWILIO_TEMPLATE_BARBER
 
   if (user.phone) {
     try {
       if (confirmationTemplateSid) {
-        // Use approved WhatsApp template for business-initiated messages
-        // Template: Servicio: {{1}}, Fecha: {{2}}, Hora: {{3}}, Lugar: {{4}}, Link: {{5}}
         await sendWhatsAppTemplate(user.phone, confirmationTemplateSid, {
           "1": appointment.service.name,
           "2": formatDate(appointment.date),
@@ -198,7 +214,6 @@ export async function POST(req: NextRequest) {
           "5": appointmentLink,
         })
       } else {
-        // Fallback to plain text (works for sandbox or user-initiated conversations)
         const message = buildConfirmationMessage(
           user.name || "Cliente",
           appointment.service.name,
@@ -214,41 +229,33 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Notify barbers via WhatsApp
-  try {
-    const barbers = await prisma.user.findMany({
-      where: { role: "BARBER", phone: { not: null } },
-      select: { phone: true },
-    })
-
-    for (const barber of barbers) {
-      if (barber.phone) {
-        if (barberTemplateSid) {
-          // Template: Cliente: {{1}}, Servicio: {{2}}, Fecha: {{3}}, Hora: {{4}}, Precio: {{5}}
-          sendWhatsAppTemplate(barber.phone, barberTemplateSid, {
-            "1": user.name || "Cliente",
-            "2": appointment.service.name,
-            "3": formatDate(appointment.date),
-            "4": formatTime(appointment.date),
-            "5": formatCurrency(appointment.service.price),
-          }).catch((err) => console.error("Error notifying barber:", err))
-        } else {
-          const barberMsg = buildBarberNotification(
-            user.name || "Cliente",
-            appointment.service.name,
-            formatDate(appointment.date),
-            formatTime(appointment.date),
-            formatCurrency(appointment.service.price),
-            body.bookedBy || "CLIENT"
-          )
-          sendWhatsAppMessage(barber.phone, barberMsg).catch((err) =>
-            console.error("Error notifying barber:", err)
-          )
-        }
+  // Notify only the assigned barber (not all barbers)
+  if (appointment.barber.phone) {
+    try {
+      if (barberTemplateSid) {
+        sendWhatsAppTemplate(appointment.barber.phone, barberTemplateSid, {
+          "1": user.name || "Cliente",
+          "2": appointment.service.name,
+          "3": formatDate(appointment.date),
+          "4": formatTime(appointment.date),
+          "5": formatCurrency(appointment.service.price),
+        }).catch((err) => console.error("Error notifying barber:", err))
+      } else {
+        const barberMsg = buildBarberNotification(
+          user.name || "Cliente",
+          appointment.service.name,
+          formatDate(appointment.date),
+          formatTime(appointment.date),
+          formatCurrency(appointment.service.price),
+          body.bookedBy || "CLIENT"
+        )
+        sendWhatsAppMessage(appointment.barber.phone, barberMsg).catch((err) =>
+          console.error("Error notifying barber:", err)
+        )
       }
+    } catch (error) {
+      console.error("Error notifying barber:", error)
     }
-  } catch (error) {
-    console.error("Error notifying barbers:", error)
   }
 
   return NextResponse.json(appointment, { status: 201 })

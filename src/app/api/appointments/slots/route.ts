@@ -8,26 +8,28 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const dateStr = searchParams.get("date")
   const serviceId = searchParams.get("serviceId")
+  const barberId = searchParams.get("barberId")
 
-  if (!dateStr || !serviceId) {
-    return NextResponse.json({ error: "date and serviceId required" }, { status: 400 })
+  if (!dateStr || !serviceId || !barberId) {
+    return NextResponse.json({ error: "date, serviceId and barberId required" }, { status: 400 })
   }
 
   const dayStart = parseColombia(dateStr + "T00:00:00")
   const dayEnd = parseColombia(dateStr + "T23:59:59")
 
   const [settings, service, appointments, blockedSlots] = await Promise.all([
-    prisma.barberSettings.findFirst(),
+    prisma.barberSettings.findUnique({ where: { userId: barberId } }),
     prisma.service.findUnique({ where: { id: serviceId } }),
     prisma.appointment.findMany({
       where: {
         date: { gte: dayStart, lt: dayEnd },
         status: { in: ["PENDING", "CONFIRMED"] },
+        barberId,
       },
       include: { service: true },
     }),
     prisma.blockedSlot.findMany({
-      where: { date: dateStr },
+      where: { date: dateStr, barberId },
     }),
   ])
 

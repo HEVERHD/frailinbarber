@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
 import {
   LayoutDashboard,
   CalendarDays,
@@ -19,30 +19,32 @@ import {
   LogOut,
 } from "lucide-react"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/appointments", label: "Citas", Icon: CalendarDays },
-  { href: "/clients", label: "Clientes", Icon: Users },
-  { href: "/services", label: "Servicios", Icon: Scissors },
-  { href: "/gallery", label: "Galería", Icon: ImageIcon },
-  { href: "/waitlist", label: "Lista espera", Icon: Clock },
-  { href: "/blocked-slots", label: "Bloqueos", Icon: Ban },
-  { href: "/users", label: "Usuarios", Icon: KeyRound },
-  { href: "/profile", label: "Mi Perfil", Icon: UserCircle },
-  { href: "/settings", label: "Configuración", Icon: Settings },
+const allNavItems = [
+  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard, roles: ["ADMIN", "BARBER"] },
+  { href: "/appointments", label: "Citas", Icon: CalendarDays, roles: ["ADMIN", "BARBER"] },
+  { href: "/clients", label: "Clientes", Icon: Users, roles: ["ADMIN"] },
+  { href: "/services", label: "Servicios", Icon: Scissors, roles: ["ADMIN"] },
+  { href: "/gallery", label: "Galería", Icon: ImageIcon, roles: ["ADMIN"] },
+  { href: "/waitlist", label: "Lista espera", Icon: Clock, roles: ["ADMIN"] },
+  { href: "/blocked-slots", label: "Bloqueos", Icon: Ban, roles: ["ADMIN", "BARBER"] },
+  { href: "/users", label: "Usuarios", Icon: KeyRound, roles: ["ADMIN"] },
+  { href: "/profile", label: "Mi Perfil", Icon: UserCircle, roles: ["ADMIN", "BARBER"] },
+  { href: "/settings", label: "Configuración", Icon: Settings, roles: ["ADMIN", "BARBER"] },
 ]
 
-const mobileNavItems = [
-  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/appointments", label: "Citas", Icon: CalendarDays },
-  { href: "/clients", label: "Clientes", Icon: Users },
-  { href: "/services", label: "Servicios", Icon: Scissors },
-  { href: "/gallery", label: "Galería", Icon: ImageIcon },
+const allMobileNavItems = [
+  { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard, roles: ["ADMIN", "BARBER"] },
+  { href: "/appointments", label: "Citas", Icon: CalendarDays, roles: ["ADMIN", "BARBER"] },
+  { href: "/clients", label: "Clientes", Icon: Users, roles: ["ADMIN"] },
+  { href: "/services", label: "Servicios", Icon: Scissors, roles: ["ADMIN"] },
+  { href: "/blocked-slots", label: "Bloqueos", Icon: Ban, roles: ["BARBER"] },
 ]
 
 export function Sidebar() {
   const [ready, setReady] = useState(false)
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const role = (session?.user as any)?.role || "BARBER"
 
   useEffect(() => {
     setReady(true)
@@ -50,6 +52,9 @@ export function Sidebar() {
 
   // Return nothing on server - avoids ALL hydration issues
   if (!ready) return null
+
+  const navItems = allNavItems.filter((item) => item.roles.includes(role))
+  const mobileNavItems = allMobileNavItems.filter((item) => item.roles.includes(role))
 
   return (
     <>
@@ -63,16 +68,18 @@ export function Sidebar() {
             </h1>
           </div>
           <div className="flex items-center gap-1">
-            <Link
-              href="/users"
-              className={`p-2.5 rounded-xl transition ${
-                pathname === "/users"
-                  ? "text-[#e84118] bg-[#e84118]/15"
-                  : "text-white/40 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <KeyRound size={18} />
-            </Link>
+            {role === "ADMIN" && (
+              <Link
+                href="/users"
+                className={`p-2.5 rounded-xl transition ${
+                  pathname === "/users"
+                    ? "text-[#e84118] bg-[#e84118]/15"
+                    : "text-white/40 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <KeyRound size={18} />
+              </Link>
+            )}
             <Link
               href="/settings"
               className={`p-2.5 rounded-xl transition ${
@@ -105,7 +112,9 @@ export function Sidebar() {
             <h1 className="text-lg font-bold">
               <span className="text-[#e84118]">Frailin</span> Studio
             </h1>
-            <p className="text-xs text-white/30">Panel de administración</p>
+            <p className="text-xs text-white/30">
+              {role === "ADMIN" ? "Administrador" : "Barbero"}
+            </p>
           </div>
         </div>
 

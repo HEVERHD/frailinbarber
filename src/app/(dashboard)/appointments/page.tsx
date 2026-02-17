@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/toast"
 import { to12Hour, hourTo12 } from "@/lib/utils"
 import { Loader } from "@/components/ui/loader"
@@ -13,6 +14,7 @@ type Appointment = {
   notes: string | null
   user: { name: string | null; phone: string | null }
   service: { name: string; price: number; duration: number }
+  barber?: { id: string; name: string | null }
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> = {
@@ -69,7 +71,12 @@ export default function AppointmentsPage() {
   const [slots, setSlots] = useState<string[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [dayOff, setDayOff] = useState(false)
+  const [barbers, setBarbers] = useState<any[]>([])
+  const [selectedBarberId, setSelectedBarberId] = useState("")
   const { toast } = useToast()
+  const { data: session } = useSession()
+  const role = (session?.user as any)?.role || "BARBER"
+  const userId = (session?.user as any)?.id || ""
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
 
@@ -98,21 +105,34 @@ export default function AppointmentsPage() {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
-        if (data.openTime && data.closeTime) {
+        if (data?.openTime && data?.closeTime) {
           setBusinessHours({ openTime: data.openTime, closeTime: data.closeTime })
         }
       })
-  }, [])
+    // Fetch barbers list for ADMIN barber selector
+    if (role === "ADMIN") {
+      fetch("/api/barbers")
+        .then((r) => r.json())
+        .then(setBarbers)
+    }
+  }, [role])
+
+  // Set default barberId for manual form
+  useEffect(() => {
+    if (userId && !selectedBarberId) {
+      setSelectedBarberId(userId)
+    }
+  }, [userId, selectedBarberId])
 
   // Fetch available slots when date or service changes
   const fetchSlots = async () => {
-    if (!newApt.serviceId) {
+    if (!newApt.serviceId || !selectedBarberId) {
       setSlots([])
       return
     }
     setLoadingSlots(true)
     try {
-      const res = await fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${newApt.serviceId}`)
+      const res = await fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${newApt.serviceId}&barberId=${selectedBarberId}`)
       const data = await res.json()
       setSlots(data.slots || [])
       setDayOff(data.dayOff || false)
@@ -128,7 +148,7 @@ export default function AppointmentsPage() {
       setNewApt((prev) => ({ ...prev, time: "" }))
       fetchSlots()
     }
-  }, [selectedDate, newApt.serviceId, showNewForm])
+  }, [selectedDate, newApt.serviceId, showNewForm, selectedBarberId])
 
   // Search clients as user types
   useEffect(() => {
@@ -198,6 +218,7 @@ export default function AppointmentsPage() {
           clientName: newApt.clientName,
           phone: newApt.phone,
           serviceId: newApt.serviceId,
+          barberId: selectedBarberId,
           date: dateTimeStr,
           bookedBy: "BARBER",
           notes: newApt.notes,
@@ -345,6 +366,19 @@ export default function AppointmentsPage() {
                 </option>
               ))}
             </select>
+            {role === "ADMIN" && barbers.length > 1 && (
+              <select
+                value={selectedBarberId}
+                onChange={(e) => setSelectedBarberId(e.target.value)}
+                className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white text-sm"
+              >
+                {barbers.map((b: any) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name || "Barbero"}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="sm:col-span-2">
               <label className="text-[10px] text-white/50 mb-2 block">
                 Hora disponible {newApt.time && `— ${to12Hour(newApt.time)}`}
@@ -691,7 +725,8 @@ export default function AppointmentsPage() {
                           <p className="font-semibold text-white">{apt.user?.name || "Cliente"}</p>
                           <p className="text-sm text-white/40">{apt.service.name}</p>
                           <p className="text-xs text-white/30">
-                            {apt.user?.phone} · {apt.bookedBy === "BARBER" ? "Agendado por ti" : "Reserva online"}
+                            {apt.user?.phone} · {apt.bookedBy === "BARBER" ? "Agendado manual" : "Reserva online"}
+                            {role === "ADMIN" && apt.barber?.name && ` · ${apt.barber.name}`}
                           </p>
                         </div>
                       </div>

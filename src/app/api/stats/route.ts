@@ -11,6 +11,12 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
+  const role = (session.user as any).role
+  const userId = (session.user as any).id
+
+  // BARBER sees only their own stats, ADMIN sees all
+  const barberFilter: any = role === "ADMIN" ? {} : { barberId: userId }
+
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -22,6 +28,7 @@ export async function GET() {
     where: {
       date: { gte: startOfMonth },
       status: "COMPLETED",
+      ...barberFilter,
     },
     include: { service: true },
   })
@@ -33,8 +40,9 @@ export async function GET() {
     where: {
       date: { gte: startOfDay, lt: endOfDay },
       status: { in: ["PENDING", "CONFIRMED", "COMPLETED"] },
+      ...barberFilter,
     },
-    include: { service: true, user: true },
+    include: { service: true, user: true, barber: { select: { id: true, name: true } } },
     orderBy: { date: "asc" },
   })
 
@@ -43,6 +51,7 @@ export async function GET() {
     where: {
       date: { gte: startOfMonth },
       status: "NO_SHOW",
+      ...barberFilter,
     },
   })
 
@@ -51,6 +60,7 @@ export async function GET() {
     where: {
       date: { gte: startOfMonth },
       status: { not: "CANCELLED" },
+      ...barberFilter,
     },
   })
 
@@ -60,6 +70,7 @@ export async function GET() {
     where: {
       date: { gte: startOfMonth },
       status: { not: "CANCELLED" },
+      ...barberFilter,
     },
     _count: { id: true },
     orderBy: { _count: { id: "desc" } },
@@ -79,6 +90,7 @@ export async function GET() {
     where: {
       date: { gte: sixMonthsAgo },
       status: "COMPLETED",
+      ...barberFilter,
     },
     include: { service: true },
   })
@@ -101,6 +113,7 @@ export async function GET() {
     where: {
       date: { gte: sixMonthsAgo },
       status: { not: "CANCELLED" },
+      ...barberFilter,
     },
   })
 
