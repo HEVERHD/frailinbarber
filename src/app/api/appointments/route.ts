@@ -267,5 +267,31 @@ export async function PATCH(req: NextRequest) {
     include: { service: true, user: true },
   })
 
+  // When cancelling, notify waitlist entries for that date
+  if (body.status === "CANCELLED") {
+    try {
+      const dateStr = getColombiaDateStr(new Date(appointment.date))
+      const waitlistEntries = await prisma.waitlistEntry.findMany({
+        where: { date: dateStr, status: "WAITING" },
+        include: { service: true },
+      })
+
+      for (const entry of waitlistEntries) {
+        if (entry.phone) {
+          const message = `Hola ${entry.name}, se ha liberado un horario para ${dateStr}. Reserva tu cita ahora en ${process.env.NEXT_PUBLIC_APP_URL || "https://frailinstudio.com"}/booking`
+          sendWhatsAppMessage(entry.phone, message).catch((err) =>
+            console.error("Error notifying waitlist:", err)
+          )
+          await prisma.waitlistEntry.update({
+            where: { id: entry.id },
+            data: { status: "NOTIFIED", notified: true },
+          })
+        }
+      }
+    } catch (error) {
+      console.error("Error notifying waitlist on cancellation:", error)
+    }
+  }
+
   return NextResponse.json(appointment)
 }

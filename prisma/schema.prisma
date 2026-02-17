@@ -61,14 +61,15 @@ enum Role {
 }
 
 model Service {
-  id           String        @id @default(cuid())
+  id           String           @id @default(cuid())
   name         String
   description  String?
   price        Float
-  duration     Int           // minutes
-  active       Boolean       @default(true)
+  duration     Int              // minutes
+  active       Boolean          @default(true)
   appointments Appointment[]
-  createdAt    DateTime      @default(now())
+  waitlist     WaitlistEntry[]
+  createdAt    DateTime         @default(now())
 }
 
 model Appointment {
@@ -123,4 +124,36 @@ model BlockedSlot {
   createdAt DateTime @default(now())
 
   @@index([date])
+}
+
+model GalleryItem {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  title       String?
+  description String?
+  category    String   @default("corte")
+  orderIndex  Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model WaitlistEntry {
+  id        String         @id @default(cuid())
+  date      String         // YYYY-MM-DD
+  name      String
+  phone     String
+  serviceId String
+  service   Service        @relation(fields: [serviceId], references: [id])
+  status    WaitlistStatus @default(WAITING)
+  notified  Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  @@index([date, status])
+}
+
+enum WaitlistStatus {
+  WAITING
+  NOTIFIED
+  BOOKED
+  EXPIRED
 }

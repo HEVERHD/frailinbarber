@@ -10,6 +10,8 @@ import {
   Users,
   Scissors,
   Ban,
+  ImageIcon,
+  Clock,
   KeyRound,
   UserCircle,
   Settings,
@@ -22,6 +24,8 @@ const navItems = [
   { href: "/appointments", label: "Citas", Icon: CalendarDays },
   { href: "/clients", label: "Clientes", Icon: Users },
   { href: "/services", label: "Servicios", Icon: Scissors },
+  { href: "/gallery", label: "Galería", Icon: ImageIcon },
+  { href: "/waitlist", label: "Lista espera", Icon: Clock },
   { href: "/blocked-slots", label: "Bloqueos", Icon: Ban },
   { href: "/users", label: "Usuarios", Icon: KeyRound },
   { href: "/profile", label: "Mi Perfil", Icon: UserCircle },
@@ -33,7 +37,7 @@ const mobileNavItems = [
   { href: "/appointments", label: "Citas", Icon: CalendarDays },
   { href: "/clients", label: "Clientes", Icon: Users },
   { href: "/services", label: "Servicios", Icon: Scissors },
-  { href: "/blocked-slots", label: "Bloqueos", Icon: Ban },
+  { href: "/gallery", label: "Galería", Icon: ImageIcon },
 ]
 
 export function Sidebar() {

@@ -29,6 +29,11 @@ export default function BookingPage() {
   const [clientEmail, setClientEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [showWaitlist, setShowWaitlist] = useState(false)
+  const [waitlistName, setWaitlistName] = useState("")
+  const [waitlistPhone, setWaitlistPhone] = useState("")
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
+  const [waitlistDone, setWaitlistDone] = useState(false)
 
   useEffect(() => {
     fetch("/api/services")
@@ -83,6 +88,33 @@ export default function BookingPage() {
       setError(data.error || "Error al agendar la cita")
     }
     setSubmitting(false)
+  }
+
+  const handleWaitlistSubmit = async () => {
+    if (!waitlistName || !waitlistPhone || !selectedService || !selectedDate) return
+    setWaitlistSubmitting(true)
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: selectedDate,
+          name: waitlistName,
+          phone: waitlistPhone,
+          serviceId: selectedService.id,
+        }),
+      })
+      if (res.ok) {
+        setWaitlistDone(true)
+      } else {
+        const data = await res.json()
+        setError(data.error || "Error al unirse a la lista")
+      }
+    } catch {
+      setError("Error de conexión")
+    } finally {
+      setWaitlistSubmitting(false)
+    }
   }
 
   const today = new Date().toISOString().split("T")[0]
@@ -205,14 +237,70 @@ export default function BookingPage() {
                   </button>
                 </div>
               ) : slots.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No hay horarios disponibles</p>
-                  <button
-                    onClick={() => setStep("date")}
-                    className="mt-4 text-[#e84118] font-medium"
-                  >
-                    Elegir otra fecha
-                  </button>
+                <div className="text-center py-6">
+                  <p className="text-gray-500 mb-4">No hay horarios disponibles</p>
+                  {waitlistDone ? (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                      <p className="text-green-700 font-medium">Te avisaremos si se abre un horario</p>
+                      <button
+                        onClick={() => setStep("date")}
+                        className="mt-3 text-[#e84118] font-medium text-sm"
+                      >
+                        Elegir otra fecha
+                      </button>
+                    </div>
+                  ) : showWaitlist ? (
+                    <div className="text-left space-y-3">
+                      <p className="text-sm text-gray-600 font-medium">Unirme a la lista de espera</p>
+                      <input
+                        type="text"
+                        placeholder="Tu nombre"
+                        value={waitlistName}
+                        onChange={(e) => setWaitlistName(e.target.value)}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="+57 3001234567"
+                        value={waitlistPhone}
+                        onChange={(e) => setWaitlistPhone(e.target.value)}
+                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
+                      />
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setShowWaitlist(false)}
+                          className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition text-sm"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleWaitlistSubmit}
+                          disabled={waitlistSubmitting || !waitlistName || !waitlistPhone}
+                          className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50 text-sm"
+                        >
+                          {waitlistSubmitting ? "Enviando..." : "Avisarme"}
+                        </button>
+                      </div>
+                      {error && (
+                        <p className="text-red-500 text-sm">{error}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => setShowWaitlist(true)}
+                        className="w-full py-3 rounded-xl border-2 border-[#e84118] text-[#e84118] font-medium hover:bg-[#e84118]/5 transition"
+                      >
+                        Unirme a lista de espera
+                      </button>
+                      <button
+                        onClick={() => setStep("date")}
+                        className="text-gray-400 font-medium text-sm"
+                      >
+                        Elegir otra fecha
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>

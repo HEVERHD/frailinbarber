@@ -16,6 +16,14 @@ async function getSettings() {
   return prisma.barberSettings.findFirst()
 }
 
+async function getGallery() {
+  return prisma.galleryItem.findMany({
+    where: { active: true },
+    orderBy: { orderIndex: "asc" },
+    take: 6,
+  })
+}
+
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("es-CO", {
     style: "currency",
@@ -25,7 +33,7 @@ const formatPrice = (price: number) =>
   }).format(price)
 
 export default async function Home() {
-  const [services, settings] = await Promise.all([getServices(), getSettings()])
+  const [services, settings, gallery] = await Promise.all([getServices(), getSettings(), getGallery()])
 
   return (
     <div className="min-h-screen bg-[#1a0a0a]">
@@ -275,6 +283,42 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Gallery */}
+      {gallery.length > 0 && (
+        <section className="bg-[#120505] py-20">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <span className="text-sm font-medium text-[#e84118] tracking-widest uppercase">Portafolio</span>
+              <h3 className="text-3xl md:text-4xl font-bold text-white mt-3">
+                Nuestros <span className="text-[#e84118]">trabajos</span>
+              </h3>
+              <p className="text-white/40 mt-3 max-w-md mx-auto">
+                Cada corte cuenta una historia. Mira lo que podemos hacer por ti.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {gallery.map((item) => (
+                <div key={item.id} className="group relative aspect-square rounded-2xl overflow-hidden border border-[#3d2020]">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title || "Trabajo"}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  {item.title && (
+                    <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <p className="text-white font-medium text-sm">{item.title}</p>
+                      <span className="text-xs text-white/60 capitalize">{item.category}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="relative overflow-hidden py-20">
