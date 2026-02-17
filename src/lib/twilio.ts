@@ -99,3 +99,19 @@ export function buildReminderMessage(
 ): string {
   return `⏰ *Recordatorio de Cita*\n\nHola ${clientName}, tu cita es en 1 hora:\n\n📋 Servicio: ${serviceName}\n🕐 Hora: ${time}\n💈 ${shopName}\n\n¡Te esperamos!`
 }
+
+export function buildReminder24hMessage(
+  clientName: string,
+  serviceName: string,
+  date: string,
+  time: string,
+  shopName: string,
+  appointmentLink?: string
+): string {
+  let msg = `📅 *Recordatorio — Mañana tienes cita*\n\nHola ${clientName}, te recordamos tu cita:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}`
+  if (appointmentLink) {
+    msg += `\n\n🔗 Ver o cancelar tu cita:\n${appointmentLink}`
+  }
+  msg += `\n\n¡Te esperamos!`
+  return msg
+}

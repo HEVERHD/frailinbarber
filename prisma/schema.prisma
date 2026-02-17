@@ -85,7 +85,8 @@ model Appointment {
   status    AppointmentStatus @default(PENDING)
   notes     String?
   bookedBy  BookedBy
-  notified  Boolean           @default(false)
+  notified      Boolean       @default(false)
+  reminded24h   Boolean       @default(false)
   userId    String
   user      User              @relation(fields: [userId], references: [id])
   serviceId String
