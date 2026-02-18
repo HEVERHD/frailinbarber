@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, buildReminderMessage } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate, buildReminderMessage } from "@/lib/twilio"
 import { formatTime } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -33,19 +33,29 @@ export async function GET(req: NextRequest) {
     },
   })
 
+  const templateSid = process.env.TWILIO_TEMPLATE_REMINDER_1H
   let sent = 0
 
   for (const appointment of appointments) {
     if (appointment.user.phone) {
       try {
         const shopName = (appointment.barber as any).barberSettings?.shopName || "Mi Barbería"
-        const message = buildReminderMessage(
-          appointment.user.name || "Cliente",
-          appointment.service.name,
-          formatTime(appointment.date),
-          shopName
-        )
-        await sendWhatsAppMessage(appointment.user.phone, message)
+        if (templateSid) {
+          await sendWhatsAppTemplate(appointment.user.phone, templateSid, {
+            "1": appointment.user.name || "Cliente",
+            "2": appointment.service.name,
+            "3": formatTime(appointment.date),
+            "4": shopName,
+          })
+        } else {
+          const message = buildReminderMessage(
+            appointment.user.name || "Cliente",
+            appointment.service.name,
+            formatTime(appointment.date),
+            shopName
+          )
+          await sendWhatsAppMessage(appointment.user.phone, message)
+        }
         sent++
       } catch (error) {
         console.error(`Error sending reminder for appointment ${appointment.id}:`, error)

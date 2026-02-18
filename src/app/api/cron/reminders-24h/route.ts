@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, buildReminder24hMessage } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate, buildReminder24hMessage } from "@/lib/twilio"
 import { formatDate, formatTime } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   })
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+  const templateSid = process.env.TWILIO_TEMPLATE_REMINDER_24H
   let sent = 0
 
   for (const appointment of appointments) {
@@ -41,15 +42,26 @@ export async function GET(req: NextRequest) {
       try {
         const shopName = (appointment.barber as any).barberSettings?.shopName || "Mi Barbería"
         const link = baseUrl ? `${baseUrl}/cita/${appointment.token}` : undefined
-        const message = buildReminder24hMessage(
-          appointment.user.name || "Cliente",
-          appointment.service.name,
-          formatDate(appointment.date),
-          formatTime(appointment.date),
-          shopName,
-          link
-        )
-        await sendWhatsAppMessage(appointment.user.phone, message)
+        if (templateSid) {
+          await sendWhatsAppTemplate(appointment.user.phone, templateSid, {
+            "1": appointment.user.name || "Cliente",
+            "2": appointment.service.name,
+            "3": formatDate(appointment.date),
+            "4": formatTime(appointment.date),
+            "5": shopName,
+            ...(link ? { "6": link } : {}),
+          })
+        } else {
+          const message = buildReminder24hMessage(
+            appointment.user.name || "Cliente",
+            appointment.service.name,
+            formatDate(appointment.date),
+            formatTime(appointment.date),
+            shopName,
+            link
+          )
+          await sendWhatsAppMessage(appointment.user.phone, message)
+        }
         sent++
       } catch (error) {
         console.error(`Error sending 24h reminder for appointment ${appointment.id}:`, error)
