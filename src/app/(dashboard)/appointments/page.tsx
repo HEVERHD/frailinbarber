@@ -134,7 +134,8 @@ export default function AppointmentsPage() {
     try {
       const res = await fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${newApt.serviceId}&barberId=${selectedBarberId}`)
       const data = await res.json()
-      setSlots(data.slots || [])
+      const allSlots: { time: string; available: boolean }[] = data.slots || []
+      setSlots(allSlots.filter((s) => s.available).map((s) => s.time))
       setDayOff(data.dayOff || false)
     } catch {
       setSlots([])

@@ -239,6 +239,7 @@ export async function POST(req: NextRequest) {
           "3": formatDate(appointment.date),
           "4": formatTime(appointment.date),
           "5": formatCurrency(appointment.service.price),
+          "6": appointmentLink,
         }).catch((err) => console.error("Error notifying barber:", err))
       } else {
         const barberMsg = buildBarberNotification(

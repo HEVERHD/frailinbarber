@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { to12Hour } from "@/lib/utils"
 import Image from "next/image"
 
 type Barber = {
@@ -21,7 +20,41 @@ type Service = {
   duration: number
 }
 
-type Step = "barber" | "service" | "date" | "time" | "info" | "confirm"
+type Step = "barber" | "service" | "datetime" | "info" | "confirm"
+
+// ── Week helpers ──────────────────────────────────────────────
+function getWeekStart(date: Date): Date {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day   // Monday = start
+  d.setDate(d.getDate() + diff)
+  return d
+}
+
+function getWeekDays(weekStart: Date): Date[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + i)
+    return d
+  })
+}
+
+function toLocalDateStr(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
+}
+
+function formatTime(slot: string): string {
+  const [h, m] = slot.split(":").map(Number)
+  const period = h >= 12 ? "PM" : "AM"
+  const hour = h % 12 || 12
+  return `${hour}:${m.toString().padStart(2, "0")} ${period}`
+}
+
+const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"]
 
 export default function BookingPage() {
   const router = useRouter()
@@ -45,14 +78,14 @@ export default function BookingPage() {
   const [waitlistPhone, setWaitlistPhone] = useState("")
   const [waitlistSubmitting, setWaitlistSubmitting] = useState(false)
   const [waitlistDone, setWaitlistDone] = useState(false)
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
 
-  // Fetch barbers on mount
+  // ── Data fetching ──────────────────────────────────────────
   useEffect(() => {
     fetch("/api/barbers")
       .then((r) => r.json())
       .then((data: Barber[]) => {
         setBarbers(data)
-        // Auto-select if only one barber
         if (data.length === 1) {
           setSelectedBarber(data[0])
           setStep("service")
@@ -71,36 +104,38 @@ export default function BookingPage() {
   useEffect(() => {
     if (selectedDate && selectedService && selectedBarber) {
       setLoading(true)
-      fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${selectedService.id}&barberId=${selectedBarber.id}`)
+      setSlots([])
+      setDayOff(false)
+      fetch(
+        `/api/appointments/slots?date=${selectedDate}&serviceId=${selectedService.id}&barberId=${selectedBarber.id}`
+      )
         .then((r) => r.json())
         .then((data) => {
-          setSlots(data.slots)
-          setDayOff(data.dayOff)
+          const allSlots: { time: string; available: boolean }[] = data.slots ?? []
+          setSlots(allSlots.filter((s) => s.available).map((s) => s.time))
+          setDayOff(data.dayOff ?? false)
           setLoading(false)
         })
     }
   }, [selectedDate, selectedService, selectedBarber])
 
+  // ── Handlers ───────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !clientName || !clientPhone || !selectedBarber) return
     setSubmitting(true)
-
-    const dateTimeStr = `${selectedDate}T${selectedTime}:00`
-
     const res = await fetch("/api/appointments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         serviceId: selectedService.id,
         barberId: selectedBarber.id,
-        date: dateTimeStr,
+        date: `${selectedDate}T${selectedTime}:00`,
         clientName,
         phone: clientPhone,
         email: clientEmail,
         bookedBy: "CLIENT",
       }),
     })
-
     if (res.ok) {
       const params = new URLSearchParams({
         service: selectedService.name,
@@ -146,17 +181,57 @@ export default function BookingPage() {
     }
   }
 
-  const today = new Date().toISOString().split("T")[0]
+  // ── Week navigation ────────────────────────────────────────
+  const todayLocal = new Date()
+  todayLocal.setHours(0, 0, 0, 0)
+  const todayStr = toLocalDateStr(todayLocal)
+  const currentWeekStart = getWeekStart(todayLocal)
+  const weekDays = getWeekDays(weekStart)
 
+  const monthLabel = weekStart.toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric",
+  })
+
+  const handleDateSelect = (date: Date) => {
+    const d = new Date(date)
+    d.setHours(0, 0, 0, 0)
+    if (d.getTime() < todayLocal.getTime()) return
+    setSelectedDate(toLocalDateStr(d))
+    setSelectedTime("")
+  }
+
+  const prevWeek = () => {
+    const prev = new Date(weekStart)
+    prev.setDate(prev.getDate() - 7)
+    if (prev.getTime() >= currentWeekStart.getTime()) setWeekStart(prev)
+  }
+
+  const nextWeek = () => {
+    const next = new Date(weekStart)
+    next.setDate(next.getDate() + 7)
+    setWeekStart(next)
+  }
+
+  // ── Misc ───────────────────────────────────────────────────
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)
+    new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price)
 
-  const progressSteps: Step[] = ["barber", "service", "date", "time", "info"]
-  // If only 1 barber, skip barber step in progress
-  const visibleProgressSteps = barbers.length <= 1
-    ? progressSteps.filter((s) => s !== "barber")
-    : progressSteps
+  const progressSteps: Step[] = ["barber", "service", "datetime", "info"]
+  const visibleProgressSteps =
+    barbers.length <= 1 ? progressSteps.filter((s) => s !== "barber") : progressSteps
 
+  const allSteps: Step[] =
+    barbers.length <= 1
+      ? ["service", "datetime", "info", "confirm"]
+      : ["barber", "service", "datetime", "info", "confirm"]
+
+  // ── Render ─────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a0a0a] to-[#2d1515]">
       <div className="max-w-lg mx-auto px-4 py-8">
@@ -170,26 +245,22 @@ export default function BookingPage() {
 
         {/* Progress */}
         <div className="flex justify-center gap-2 mb-8">
-          {visibleProgressSteps.map((s, i) => {
-            const allSteps: Step[] = barbers.length <= 1
-              ? ["service", "date", "time", "info", "confirm"]
-              : ["barber", "service", "date", "time", "info", "confirm"]
-            return (
-              <div
-                key={s}
-                className={`h-2 w-12 rounded-full transition ${
-                  allSteps.indexOf(step) >= allSteps.indexOf(s)
-                    ? "bg-[#e84118]"
-                    : "bg-white/20"
-                }`}
-              />
-            )
-          })}
+          {visibleProgressSteps.map((s) => (
+            <div
+              key={s}
+              className={`h-2 w-12 rounded-full transition ${
+                allSteps.indexOf(step) >= allSteps.indexOf(s)
+                  ? "bg-[#e84118]"
+                  : "bg-white/20"
+              }`}
+            />
+          ))}
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-6">
-          {/* Step 0: Barber Selection */}
+
+          {/* ── Step: Barber ── */}
           {step === "barber" && (
             <div>
               <h2 className="text-xl font-bold mb-4">Elige tu barbero</h2>
@@ -235,7 +306,7 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* Step 1: Service */}
+          {/* ── Step: Service ── */}
           {step === "service" && (
             <div>
               <h2 className="text-xl font-bold mb-4">Elige tu servicio</h2>
@@ -245,7 +316,7 @@ export default function BookingPage() {
                     key={service.id}
                     onClick={() => {
                       setSelectedService(service)
-                      setStep("date")
+                      setStep("datetime")
                     }}
                     className={`w-full text-left p-4 rounded-xl border-2 transition hover:border-[#e84118] ${
                       selectedService?.id === service.id
@@ -279,40 +350,73 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* Step 2: Date */}
-          {step === "date" && (
+          {/* ── Step: Date + Time (combined) ── */}
+          {step === "datetime" && (
             <div>
-              <h2 className="text-xl font-bold mb-4">Selecciona la fecha</h2>
-              <input
-                type="date"
-                min={today}
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none text-lg"
-              />
-              <div className="flex gap-3 mt-6">
+              <h2 className="text-xl font-bold mb-5">Seleccionar fecha y hora</h2>
+
+              {/* Month label + week arrows */}
+              <div className="flex items-center justify-between mb-3">
                 <button
-                  onClick={() => setStep("service")}
-                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition"
+                  onClick={prevWeek}
+                  disabled={weekStart.getTime() <= currentWeekStart.getTime()}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 disabled:opacity-30 transition text-xl leading-none"
                 >
-                  Atrás
+                  ‹
                 </button>
+                <span className="text-sm font-semibold capitalize text-gray-700">
+                  {monthLabel}
+                </span>
                 <button
-                  onClick={() => selectedDate && setStep("time")}
-                  disabled={!selectedDate}
-                  className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
+                  onClick={nextWeek}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition text-xl leading-none"
                 >
-                  Siguiente
+                  ›
                 </button>
               </div>
-            </div>
-          )}
 
-          {/* Step 3: Time */}
-          {step === "time" && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">Selecciona la hora</h2>
-              {loading ? (
+              {/* Week strip */}
+              <div className="grid grid-cols-7 gap-1 mb-5">
+                {weekDays.map((day, i) => {
+                  const dateStr = toLocalDateStr(day)
+                  const isPast = day.getTime() < todayLocal.getTime()
+                  const isToday = dateStr === todayStr
+                  const isSelected = dateStr === selectedDate
+
+                  return (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <span className="text-[11px] text-gray-400">{DAY_LABELS[i]}</span>
+                      <button
+                        onClick={() => handleDateSelect(day)}
+                        disabled={isPast}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition select-none
+                          ${
+                            isSelected
+                              ? "bg-[#e84118] text-white"
+                              : isToday
+                              ? "border-2 border-gray-800 text-gray-800"
+                              : isPast
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-gray-700 hover:bg-gray-100"
+                          }
+                        `}
+                      >
+                        {day.getDate()}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Divider */}
+              <hr className="mb-4" />
+
+              {/* Time slots area */}
+              {!selectedDate ? (
+                <p className="text-center text-gray-400 text-sm py-6">
+                  Selecciona un día para ver los horarios
+                </p>
+              ) : loading ? (
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
                   <div className="relative w-8 h-8">
                     <div className="absolute inset-0 rounded-full border-2 border-gray-200" />
@@ -321,31 +425,24 @@ export default function BookingPage() {
                   <p className="text-sm text-gray-400">Cargando horarios...</p>
                 </div>
               ) : dayOff ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">Este día no hay servicio</p>
-                  <button
-                    onClick={() => setStep("date")}
-                    className="mt-4 text-[#e84118] font-medium"
-                  >
-                    Elegir otra fecha
-                  </button>
+                <div className="text-center py-6">
+                  <p className="text-gray-500 font-medium">Este día no hay servicio</p>
+                  <p className="text-sm text-gray-400 mt-1">Elige otra fecha</p>
                 </div>
               ) : slots.length === 0 ? (
-                <div className="text-center py-6">
+                <div className="text-center py-4">
                   <p className="text-gray-500 mb-4">No hay horarios disponibles</p>
                   {waitlistDone ? (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                      <p className="text-green-700 font-medium">Te avisaremos si se abre un horario</p>
-                      <button
-                        onClick={() => setStep("date")}
-                        className="mt-3 text-[#e84118] font-medium text-sm"
-                      >
-                        Elegir otra fecha
-                      </button>
+                      <p className="text-green-700 font-medium">
+                        Te avisaremos si se abre un horario
+                      </p>
                     </div>
                   ) : showWaitlist ? (
                     <div className="text-left space-y-3">
-                      <p className="text-sm text-gray-600 font-medium">Unirme a la lista de espera</p>
+                      <p className="text-sm text-gray-600 font-medium">
+                        Unirme a la lista de espera
+                      </p>
                       <input
                         type="text"
                         placeholder="Tu nombre"
@@ -375,65 +472,72 @@ export default function BookingPage() {
                           {waitlistSubmitting ? "Enviando..." : "Avisarme"}
                         </button>
                       </div>
-                      {error && (
-                        <p className="text-red-500 text-sm">{error}</p>
-                      )}
+                      {error && <p className="text-red-500 text-sm">{error}</p>}
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => setShowWaitlist(true)}
-                        className="w-full py-3 rounded-xl border-2 border-[#e84118] text-[#e84118] font-medium hover:bg-[#e84118]/5 transition"
-                      >
-                        Unirme a lista de espera
-                      </button>
-                      <button
-                        onClick={() => setStep("date")}
-                        className="text-gray-400 font-medium text-sm"
-                      >
-                        Elegir otra fecha
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setShowWaitlist(true)}
+                      className="w-full py-3 rounded-xl border-2 border-[#e84118] text-[#e84118] font-medium hover:bg-[#e84118]/5 transition"
+                    >
+                      Unirme a lista de espera
+                    </button>
                   )}
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-2">
-                    {slots.map((slot) => (
+                /* 4-column time grid */
+                <div className="grid grid-cols-4 gap-2">
+                  {slots.map((slot) => {
+                    const [h, m] = slot.split(":").map(Number)
+                    const period = h >= 12 ? "PM" : "AM"
+                    const hour = h % 12 || 12
+                    const timeStr = `${hour}:${m.toString().padStart(2, "0")}`
+                    const isSelected = selectedTime === slot
+                    return (
                       <button
                         key={slot}
                         onClick={() => setSelectedTime(slot)}
-                        className={`py-3 rounded-xl border-2 font-medium transition ${
-                          selectedTime === slot
-                            ? "border-[#e84118] bg-[#e84118] text-white"
-                            : "border-gray-200 hover:border-[#e84118]"
-                        }`}
+                        className={`py-3 rounded-xl border-2 transition flex flex-col items-center gap-0.5
+                          ${
+                            isSelected
+                              ? "bg-[#e84118] border-[#e84118] text-white"
+                              : "border-gray-200 text-gray-800 hover:border-[#e84118]"
+                          }
+                        `}
                       >
-                        {to12Hour(slot)}
+                        <span className="font-bold text-[13px] leading-tight">{timeStr}</span>
+                        <span
+                          className={`text-[10px] leading-tight ${
+                            isSelected ? "text-white/80" : "text-gray-400"
+                          }`}
+                        >
+                          {period}
+                        </span>
                       </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-3 mt-6">
-                    <button
-                      onClick={() => setStep("date")}
-                      className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition"
-                    >
-                      Atrás
-                    </button>
-                    <button
-                      onClick={() => selectedTime && setStep("info")}
-                      disabled={!selectedTime}
-                      className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                </>
+                    )
+                  })}
+                </div>
               )}
+
+              {/* Navigation buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setStep("service")}
+                  className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition"
+                >
+                  Atrás
+                </button>
+                <button
+                  onClick={() => selectedDate && selectedTime && setStep("info")}
+                  disabled={!selectedDate || !selectedTime}
+                  className="flex-1 py-3 rounded-xl bg-[#e84118] text-white font-medium hover:bg-[#c0392b] transition disabled:opacity-50"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Step 4: Client Info */}
+          {/* ── Step: Client Info ── */}
           {step === "info" && (
             <div>
               <h2 className="text-xl font-bold mb-4">Tus datos</h2>
@@ -471,7 +575,7 @@ export default function BookingPage() {
               </div>
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={() => setStep("time")}
+                  onClick={() => setStep("datetime")}
                   className="flex-1 py-3 rounded-xl border-2 border-gray-200 font-medium hover:bg-gray-50 transition"
                 >
                   Atrás
@@ -487,7 +591,7 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* Step 5: Confirm */}
+          {/* ── Step: Confirm ── */}
           {step === "confirm" && (
             <div>
               <h2 className="text-xl font-bold mb-4">Confirma tu cita</h2>
@@ -505,16 +609,17 @@ export default function BookingPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">Fecha</span>
                   <span className="font-medium">
-                    {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-CO", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                    })}
+                    {selectedDate &&
+                      new Date(selectedDate + "T12:00:00").toLocaleDateString("es-CO", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                      })}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Hora</span>
-                  <span className="font-medium">{selectedTime ? to12Hour(selectedTime) : ""}</span>
+                  <span className="font-medium">{selectedTime && formatTime(selectedTime)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Duración</span>

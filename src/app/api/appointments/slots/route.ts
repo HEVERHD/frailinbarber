@@ -55,7 +55,13 @@ export async function GET(req: NextRequest) {
   const startMinutes = openH * 60 + openM
   const endMinutes = closeH * 60 + closeM
 
-  const slots: string[] = []
+  const slots: { time: string; available: boolean }[] = []
+
+  // Compute current Colombia time (UTC-5, no DST) to mark past slots as unavailable
+  const nowColombia = new Date(Date.now() - 5 * 60 * 60 * 1000)
+  const todayColombia = `${nowColombia.getUTCFullYear()}-${String(nowColombia.getUTCMonth() + 1).padStart(2, "0")}-${String(nowColombia.getUTCDate()).padStart(2, "0")}`
+  const isToday = dateStr === todayColombia
+  const currentMinutes = nowColombia.getUTCHours() * 60 + nowColombia.getUTCMinutes()
 
   const SLOT_INTERVAL = 15 // fixed 15-minute intervals
   for (let m = startMinutes; m + service.duration <= endMinutes; m += SLOT_INTERVAL) {
@@ -80,9 +86,10 @@ export async function GET(req: NextRequest) {
       return timeStr >= blocked.startTime && timeStr < blocked.endTime
     })
 
-    if (!isBooked && !isBlocked) {
-      slots.push(timeStr)
-    }
+    // Mark past slots as unavailable when viewing today
+    const isPast = isToday && slotStart < currentMinutes
+
+    slots.push({ time: timeStr, available: !isBooked && !isBlocked && !isPast })
   }
 
   return NextResponse.json({ slots, dayOff: false })
