@@ -16,16 +16,22 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user }) {
-      // Check if user exists and is a BARBER
-      const dbUser = await prisma.user.findUnique({
-        where: { email: user.email || "" },
-        select: { role: true },
-      })
-      // If user doesn't exist yet (first login) or is CLIENT, block access
-      if (!dbUser || (dbUser.role !== "BARBER" && dbUser.role !== "ADMIN")) {
-        return "/login?error=unauthorized"
+      try {
+        // Check if user exists and is a BARBER
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email || "" },
+          select: { role: true },
+        })
+        console.log("[signIn] dbUser:", dbUser, "| email:", user.email)
+        // If user doesn't exist yet (first login) or is CLIENT, block access
+        if (!dbUser || (dbUser.role !== "BARBER" && dbUser.role !== "ADMIN")) {
+          return "/login?error=unauthorized"
+        }
+        return true
+      } catch (error) {
+        console.error("[signIn] ERROR:", error)
+        throw error
       }
-      return true
     },
     async jwt({ token, user }) {
       if (user) {

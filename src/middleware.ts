@@ -10,7 +10,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (token.role !== "BARBER") {
+  if (token.role !== "BARBER" && token.role !== "ADMIN") {
     const loginUrl = new URL("/login", req.url)
     loginUrl.searchParams.set("error", "unauthorized")
     return NextResponse.redirect(loginUrl)

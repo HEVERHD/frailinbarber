@@ -7,9 +7,8 @@ import { Suspense } from "react"
 
 function LoginContent() {
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get("callbackUrl")
   const error = searchParams.get("error")
-  const wasRedirected = !!callbackUrl || error === "unauthorized"
+  const wasRedirected = error === "unauthorized"
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a0a0a] to-[#2d1515]">
