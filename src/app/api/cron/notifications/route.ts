@@ -57,15 +57,20 @@ export async function GET(req: NextRequest) {
           await sendWhatsAppMessage(appointment.user.phone, message)
         }
         sent++
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { notified: true },
+        })
       } catch (error) {
         console.error(`Error sending reminder for appointment ${appointment.id}:`, error)
       }
+    } else {
+      // No phone number — mark as notified to avoid reprocessing
+      await prisma.appointment.update({
+        where: { id: appointment.id },
+        data: { notified: true },
+      })
     }
-
-    await prisma.appointment.update({
-      where: { id: appointment.id },
-      data: { notified: true },
-    })
   }
 
   return NextResponse.json({
