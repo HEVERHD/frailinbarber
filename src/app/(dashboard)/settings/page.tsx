@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
 import { QRCodeSVG } from "qrcode.react"
 import { useToast } from "@/components/ui/toast"
 
@@ -14,7 +15,14 @@ const DAYS = [
   { value: "6", label: "Sábado" },
 ]
 
+type Barber = { id: string; name: string | null }
+
 export default function SettingsPage() {
+  const { data: session } = useSession()
+  const isAdmin = (session?.user as any)?.role === "ADMIN"
+
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [selectedBarberId, setSelectedBarberId] = useState<string>("")
   const [settings, setSettings] = useState({
     shopName: "",
     openTime: "09:00",
@@ -27,8 +35,28 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
+  // Fetch barbers list (only needed for ADMIN)
   useEffect(() => {
-    fetch("/api/settings")
+    if (!isAdmin) return
+    fetch("/api/barbers")
+      .then((r) => r.json())
+      .then((data: Barber[]) => setBarbers(data))
+  }, [isAdmin])
+
+  // Load settings whenever selectedBarberId changes (or on first load for BARBER)
+  useEffect(() => {
+    const ownId = (session?.user as any)?.id
+    if (!ownId && isAdmin === undefined) return
+
+    const barberId = isAdmin ? selectedBarberId : ownId
+    if (!barberId) return
+
+    setLoading(true)
+    const url = isAdmin && barberId
+      ? `/api/settings?barberId=${barberId}`
+      : `/api/settings`
+
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         if (data) {
@@ -43,7 +71,7 @@ export default function SettingsPage() {
         }
         setLoading(false)
       })
-  }, [])
+  }, [selectedBarberId, (session?.user as any)?.id])
 
   const handleSave = async () => {
     setSaving(true)
@@ -53,6 +81,7 @@ export default function SettingsPage() {
       body: JSON.stringify({
         ...settings,
         daysOff: settings.daysOff.join(","),
+        ...(isAdmin && selectedBarberId ? { barberId: selectedBarberId } : {}),
       }),
     })
     setSaving(false)
@@ -92,6 +121,26 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold mb-6 text-white">Configuración</h1>
 
       <div className="max-w-2xl space-y-6">
+
+        {/* Barber selector — only for ADMIN */}
+        {isAdmin && barbers.length > 1 && (
+          <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020]">
+            <h3 className="font-semibold mb-4 text-white">Editar configuración de</h3>
+            <select
+              value={selectedBarberId}
+              onChange={(e) => setSelectedBarberId(e.target.value)}
+              className="w-full p-3 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white focus:border-[#e84118] focus:outline-none"
+            >
+              <option value="">— Mi configuración —</option>
+              {barbers.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name || b.id}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Shop Info */}
         <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020]">
           <h3 className="font-semibold mb-4 text-white">Información de la barbería</h3>
@@ -231,7 +280,7 @@ export default function SettingsPage() {
                 link.href = canvas.toDataURL("image/png")
                 link.click()
               }
-              img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)))
+              img.src = "data:image/svg+xml;base64," + btoa(decodeURIComponent(encodeURIComponent(svgData).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode(parseInt(p1, 16)))))
             }}
             className="w-full mt-4 py-3 rounded-xl border border-[#3d2020] text-white text-sm hover:bg-[#1a0a0a] transition font-medium"
           >

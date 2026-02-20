@@ -13,13 +13,13 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
-  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
-  const fifteenMinBuffer = new Date(now.getTime() + 45 * 60 * 1000)
+  const windowStart = new Date(now.getTime() + 40 * 60 * 1000)
+  const windowEnd = new Date(now.getTime() + 80 * 60 * 1000)
 
-  // Find appointments in the next 45-75 min window that haven't been notified
+  // Find appointments in the next 40-80 min window that haven't been notified
   const appointments = await prisma.appointment.findMany({
     where: {
-      date: { gte: fifteenMinBuffer, lte: oneHourLater },
+      date: { gte: windowStart, lte: windowEnd },
       status: { in: ["PENDING", "CONFIRMED"] },
       notified: false,
     },
