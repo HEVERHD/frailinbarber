@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
       user: true,
       service: true,
       barber: {
-        select: { name: true },
         include: { barberSettings: true },
       },
     },
