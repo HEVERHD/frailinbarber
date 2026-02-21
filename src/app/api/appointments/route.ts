@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
   })
   if (settings) {
     // Check day off
-    const daysOff = settings.daysOff.split(",").map(Number)
+    const daysOff = settings.daysOff.split(",").filter(Boolean).map(Number)
     if (daysOff.includes(getColombiaDayOfWeek(appointmentDate))) {
       return NextResponse.json(
         { error: "Este día no hay servicio. Selecciona otro día." },

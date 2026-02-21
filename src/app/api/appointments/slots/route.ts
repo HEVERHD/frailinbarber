@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
   }
 
   // Check if it's a day off (use Colombia timezone for day of week)
-  const daysOff = settings.daysOff.split(",").map(Number)
+  const daysOff = settings.daysOff.split(",").filter(Boolean).map(Number)
   if (daysOff.includes(getColombiaDayOfWeek(dayStart))) {
     return NextResponse.json({ slots: [], dayOff: true })
   }
