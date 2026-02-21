@@ -13,8 +13,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
-  const role = (session.user as any).role
-  const userId = (session.user as any).id
   const { searchParams } = new URL(req.url)
   const dateStr = searchParams.get("date")
   const startDate = searchParams.get("startDate")
@@ -40,13 +38,8 @@ export async function GET(req: NextRequest) {
     where.status = status
   }
 
-  // ADMIN can see all or filter by barberId
-  if (role === "ADMIN") {
-    if (barberId) where.barberId = barberId
-  } else {
-    // BARBER only sees own appointments
-    where.barberId = userId
-  }
+  // ADMIN and BARBER can see all appointments, optionally filtered by barberId
+  if (barberId) where.barberId = barberId
 
   const appointments = await prisma.appointment.findMany({
     where,
