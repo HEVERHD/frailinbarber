@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   title: "Frailin Studio - Barberia Premium",
   description: "Agenda tu cita en Frailin Studio. Reserva en segundos, sin llamadas, sin esperas.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
