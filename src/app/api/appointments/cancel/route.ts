@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   // Notify barbers about the cancellation
   try {
     const barbers = await prisma.user.findMany({
-      where: { role: "BARBER", phone: { not: null } },
+      where: { role: { in: ["BARBER", "ADMIN"] }, phone: { not: null } },
       select: { phone: true },
     })
 
