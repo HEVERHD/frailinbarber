@@ -48,7 +48,7 @@ export default function SettingsPage() {
     const ownId = (session?.user as any)?.id
     if (!ownId && isAdmin === undefined) return
 
-    const barberId = isAdmin ? selectedBarberId : ownId
+    const barberId = isAdmin && selectedBarberId ? selectedBarberId : ownId
     if (!barberId) return
 
     setLoading(true)
