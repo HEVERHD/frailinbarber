@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from "@/lib/twilio"
 import { formatDate, formatTime } from "@/lib/utils"
 
 export async function POST(req: NextRequest) {
@@ -45,12 +45,25 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
     const agendaLink = baseUrl ? `${baseUrl}/dashboard` : ""
     const clientName = updated.user.name || "Cliente"
-    const msg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.${agendaLink ? `\n\n📅 Ver agenda: ${agendaLink}` : ""}`
+    const cancelTemplateSid = process.env.TWILIO_TEMPLATE_CANCEL
+    const freeFormMsg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.${agendaLink ? `\n\n📅 Ver agenda: ${agendaLink}` : ""}`
 
     for (const barber of barbers) {
       const phone = barber.phone || barber.barberSettings?.phone
-      if (phone) {
-        sendWhatsAppMessage(phone, msg).catch((err) =>
+      if (!phone) continue
+
+      if (cancelTemplateSid) {
+        sendWhatsAppTemplate(phone, cancelTemplateSid, {
+          "1": clientName,
+          "2": updated.service.name,
+          "3": formatDate(updated.date),
+          "4": formatTime(updated.date),
+          "5": agendaLink,
+        }).catch((err) =>
+          console.error("Error notifying barber about cancellation:", err)
+        )
+      } else {
+        sendWhatsAppMessage(phone, freeFormMsg).catch((err) =>
           console.error("Error notifying barber about cancellation:", err)
         )
       }
