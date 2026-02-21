@@ -35,19 +35,22 @@ export async function POST(req: NextRequest) {
   // Notify barbers about the cancellation
   try {
     const barbers = await prisma.user.findMany({
-      where: {
-        role: { in: ["BARBER", "ADMIN"] },
-        barberSettings: { phone: { not: null } },
+      where: { role: { in: ["BARBER", "ADMIN"] } },
+      select: {
+        phone: true,
+        barberSettings: { select: { phone: true } },
       },
-      select: { barberSettings: { select: { phone: true } } },
     })
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+    const agendaLink = baseUrl ? `${baseUrl}/dashboard` : ""
     const clientName = updated.user.name || "Cliente"
-    const msg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.`
+    const msg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.${agendaLink ? `\n\n📅 Ver agenda: ${agendaLink}` : ""}`
 
     for (const barber of barbers) {
-      if (barber.barberSettings?.phone) {
-        sendWhatsAppMessage(barber.barberSettings.phone, msg).catch((err) =>
+      const phone = barber.phone || barber.barberSettings?.phone
+      if (phone) {
+        sendWhatsAppMessage(phone, msg).catch((err) =>
           console.error("Error notifying barber about cancellation:", err)
         )
       }
