@@ -38,8 +38,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Check if it's a day off (use Colombia timezone for day of week)
+  const dayOfWeek = getColombiaDayOfWeek(dayStart)
   const daysOff = settings.daysOff.split(",").filter(Boolean).map(Number)
-  if (daysOff.includes(getColombiaDayOfWeek(dayStart))) {
+  if (daysOff.includes(dayOfWeek)) {
     return NextResponse.json({ slots: [], dayOff: true })
   }
 
@@ -49,9 +50,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ slots: [], dayOff: false, blocked: true })
   }
 
+  // Resolve effective open/close for this specific day (day-specific overrides global)
+  let effectiveOpen = settings.openTime
+  let effectiveClose = settings.closeTime
+  if (settings.daySchedules) {
+    try {
+      const daySchedules = JSON.parse(settings.daySchedules) as Record<string, { open: string; close: string }>
+      const dayKey = String(dayOfWeek)
+      if (daySchedules[dayKey]) {
+        effectiveOpen = daySchedules[dayKey].open
+        effectiveClose = daySchedules[dayKey].close
+      }
+    } catch {
+      // invalid JSON, ignore and use global
+    }
+  }
+
   // Generate time slots
-  const [openH, openM] = settings.openTime.split(":").map(Number)
-  const [closeH, closeM] = settings.closeTime.split(":").map(Number)
+  const [openH, openM] = effectiveOpen.split(":").map(Number)
+  const [closeH, closeM] = effectiveClose.split(":").map(Number)
   const startMinutes = openH * 60 + openM
   const endMinutes = closeH * 60 + closeM
 

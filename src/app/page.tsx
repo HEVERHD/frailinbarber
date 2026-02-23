@@ -340,6 +340,103 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Como llegar */}
+      {settings?.address && (
+        <section id="ubicacion" className="bg-[#120505] py-20">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-12">
+              <span className="text-sm font-medium text-[#e84118] tracking-widest uppercase">Ubicación</span>
+              <h3 className="text-3xl md:text-4xl font-bold text-white mt-3">
+                Cómo <span className="text-[#e84118]">llegar</span>
+              </h3>
+              <p className="text-white/40 mt-3 max-w-md mx-auto">
+                Te esperamos. Aquí nos encuentras.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-5 gap-8 items-stretch">
+              {/* Info card */}
+              <div className="md:col-span-2 flex flex-col gap-4">
+                <div className="bg-[#2d1515] border border-[#3d2020] rounded-2xl p-6 flex flex-col gap-5 flex-1">
+                  {/* Address */}
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-[#e84118]/15 flex items-center justify-center text-xl">
+                      📍
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#e84118] uppercase tracking-wider mb-1">Dirección</p>
+                      <p className="text-white font-medium leading-snug">{settings.address}</p>
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-[#e84118]/15 flex items-center justify-center text-xl">
+                      🕐
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[#e84118] uppercase tracking-wider mb-1">Horario</p>
+                      <p className="text-white font-medium">
+                        {to12Hour(settings.openTime || "09:00")} – {to12Hour(settings.closeTime || "19:00")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  {settings.phone && (
+                    <div className="flex gap-4 items-start">
+                      <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-[#e84118]/15 flex items-center justify-center text-xl">
+                        💬
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-[#e84118] uppercase tracking-wider mb-1">WhatsApp</p>
+                        <a
+                          href={`https://wa.me/${settings.phone.replace(/\D/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white font-medium hover:text-[#e84118] transition"
+                        >
+                          {settings.phone}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Open in Maps button */}
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-auto flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#e84118] text-white font-semibold hover:bg-[#c0392b] transition-all hover:scale-[1.02] text-sm"
+                  >
+                    <span>Abrir en Google Maps</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                      <polyline points="15 3 21 3 21 9"/>
+                      <line x1="10" y1="14" x2="21" y2="3"/>
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              {/* Map embed */}
+              <div className="md:col-span-3 rounded-2xl overflow-hidden border border-[#3d2020] min-h-[340px] shadow-xl shadow-black/30">
+                <iframe
+                  title="Ubicación Frailin Studio"
+                  width="100%"
+                  height="100%"
+                  style={{ minHeight: 340, border: 0, display: "block" }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(settings.address)}&zoom=16&language=es&maptype=roadmap`}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Footer */}
       <footer className="bg-[#120505] border-t border-[#3d2020]">
         <div className="max-w-6xl mx-auto px-6 py-12">
@@ -357,6 +454,11 @@ export default async function Home() {
               <a href="#servicios" className="text-sm text-white/50 hover:text-white transition">
                 Servicios
               </a>
+              {settings?.address && (
+                <a href="#ubicacion" className="text-sm text-white/50 hover:text-white transition">
+                  Ubicación
+                </a>
+              )}
             </div>
           </div>
           <div className="mt-8 pt-6 border-t border-[#3d2020] text-center">

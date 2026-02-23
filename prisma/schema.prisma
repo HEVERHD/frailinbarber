@@ -115,15 +115,17 @@ enum BookedBy {
 }
 
 model BarberSettings {
-  id           String @id @default(cuid())
-  shopName     String @default("Mi Barbería")
-  openTime     String @default("09:00")
-  closeTime    String @default("19:00")
-  slotDuration Int    @default(30)
-  daysOff      String @default("0")
-  phone        String?
-  userId       String @unique
-  user         User   @relation(fields: [userId], references: [id])
+  id            String  @id @default(cuid())
+  shopName      String  @default("Mi Barbería")
+  openTime      String  @default("09:00")
+  closeTime     String  @default("19:00")
+  slotDuration  Int     @default(30)
+  daysOff       String  @default("0")
+  daySchedules  String? // JSON: {"0":{"open":"09:00","close":"18:00"},...} - per-day overrides
+  address       String? // Physical address for the "Como llegar" section
+  phone         String?
+  userId        String  @unique
+  user          User    @relation(fields: [userId], references: [id])
 }
 
 model BlockedSlot {

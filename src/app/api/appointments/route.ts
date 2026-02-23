@@ -118,17 +118,34 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check business hours
+    // Check business hours (use day-specific schedule if available)
     const colTime = getColombiaTime(appointmentDate)
     const aptMinutes = colTime.hours * 60 + colTime.minutes
-    const [openH, openM] = settings.openTime.split(":").map(Number)
-    const [closeH, closeM] = settings.closeTime.split(":").map(Number)
+    const dayOfWeek = getColombiaDayOfWeek(appointmentDate)
+
+    let effectiveOpen = settings.openTime
+    let effectiveClose = settings.closeTime
+    if (settings.daySchedules) {
+      try {
+        const daySchedules = JSON.parse(settings.daySchedules) as Record<string, { open: string; close: string }>
+        const dayKey = String(dayOfWeek)
+        if (daySchedules[dayKey]) {
+          effectiveOpen = daySchedules[dayKey].open
+          effectiveClose = daySchedules[dayKey].close
+        }
+      } catch {
+        // invalid JSON, ignore and use global
+      }
+    }
+
+    const [openH, openM] = effectiveOpen.split(":").map(Number)
+    const [closeH, closeM] = effectiveClose.split(":").map(Number)
     const openMinutes = openH * 60 + openM
     const closeMinutes = closeH * 60 + closeM
 
     if (aptMinutes < openMinutes || aptMinutes + service.duration > closeMinutes) {
       return NextResponse.json(
-        { error: `Horario fuera de servicio. Atendemos de ${to12Hour(settings.openTime)} a ${to12Hour(settings.closeTime)}.` },
+        { error: `Horario fuera de servicio. Atendemos de ${to12Hour(effectiveOpen)} a ${to12Hour(effectiveClose)}.` },
         { status: 400 }
       )
     }

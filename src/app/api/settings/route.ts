@@ -56,6 +56,8 @@ export async function PUT(req: NextRequest) {
       closeTime: body.closeTime,
       slotDuration: parseInt(body.slotDuration),
       daysOff: body.daysOff,
+      daySchedules: body.daySchedules ?? null,
+      address: body.address ?? null,
       phone: body.phone,
     },
     create: {
@@ -64,6 +66,8 @@ export async function PUT(req: NextRequest) {
       closeTime: body.closeTime,
       slotDuration: parseInt(body.slotDuration),
       daysOff: body.daysOff,
+      daySchedules: body.daySchedules ?? null,
+      address: body.address ?? null,
       phone: body.phone,
       userId: targetUserId,
     },
