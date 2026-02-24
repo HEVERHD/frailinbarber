@@ -88,9 +88,13 @@ export default function LiveQueueBadge() {
         ) : (
           <>
             <p className="text-white text-sm font-semibold leading-tight">
-              {waiting.length} {waiting.length === 1 ? "persona" : "personas"} en cola
+              💈 Barbero disponible ahora
             </p>
-            <p className="text-white/40 text-xs">Sin servicio en curso</p>
+            <p className="text-white/40 text-xs">
+              {waiting.length > 0
+                ? `${waiting.length} ${waiting.length === 1 ? "cita agendada" : "citas agendadas"} hoy`
+                : "Agenda tu cita"}
+            </p>
           </>
         )}
       </div>
