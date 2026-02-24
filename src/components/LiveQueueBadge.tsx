@@ -3,8 +3,6 @@
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 
-const COL_TZ = "America/Bogota"
-
 type Apt = {
   id: string
   clientName: string
@@ -55,59 +53,42 @@ export default function LiveQueueBadge() {
   if (!loaded) return null
 
   const active = appointments.find((a) => isActive(a, now))
-  const waiting = appointments.filter(
+  // Solo citas futuras (no pasadas, no completadas)
+  const upcoming = appointments.filter(
     (a) => !isActive(a, now) && a.status !== "COMPLETED" && new Date(a.date) > now
   )
-  const totalInQueue = (active ? 1 : 0) + waiting.length
 
-  if (totalInQueue === 0) return null
+  // No mostrar nada si no hay actividad ni citas futuras
+  if (!active && upcoming.length === 0) return null
+
+  const busy = !!active
 
   return (
     <Link
       href="/cola"
-      className="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 hover:bg-white/10 hover:border-[#e84118]/30 transition-all group"
+      className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2 border transition-all hover:scale-105 ${
+        busy
+          ? "bg-[#e84118]/10 border-[#e84118]/30 hover:bg-[#e84118]/20"
+          : "bg-white/5 border-white/10 hover:bg-white/10"
+      }`}
     >
-      {/* Indicador en vivo */}
-      <span className="relative flex h-2.5 w-2.5">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#e84118]" />
+      {/* Dot */}
+      <span className="relative flex h-2 w-2 flex-shrink-0">
+        <span
+          className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+            busy ? "bg-[#e84118]" : "bg-emerald-400"
+          }`}
+        />
+        <span
+          className={`relative inline-flex rounded-full h-2 w-2 ${
+            busy ? "bg-[#e84118]" : "bg-emerald-400"
+          }`}
+        />
       </span>
 
-      <div className="text-left">
-        {active ? (
-          <>
-            <p className="text-white text-sm font-semibold leading-tight">
-              Peluqueando a {active.clientName}
-            </p>
-            <p className="text-white/40 text-xs">
-              {waiting.length > 0
-                ? `${waiting.length} ${waiting.length === 1 ? "persona" : "personas"} en cola`
-                : "Sin más en cola"}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-white text-sm font-semibold leading-tight">
-              💈 Barbero disponible ahora
-            </p>
-            <p className="text-white/40 text-xs">
-              {waiting.length > 0
-                ? `${waiting.length} ${waiting.length === 1 ? "cita agendada" : "citas agendadas"} hoy`
-                : "Agenda tu cita"}
-            </p>
-          </>
-        )}
-      </div>
-
-      <svg
-        className="w-4 h-4 text-white/30 group-hover:text-[#e84118] transition ml-1"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      <span className={`text-sm font-medium ${busy ? "text-white" : "text-white/80"}`}>
+        {busy ? `Peluqueando a ${active!.clientName}` : "Barbero disponible ahora"}
+      </span>
     </Link>
   )
 }
