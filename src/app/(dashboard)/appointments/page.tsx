@@ -26,7 +26,7 @@ const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> 
 }
 
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
-const HOURS = Array.from({ length: 15 }, (_, i) => i + 7) // 7:00 - 21:00
+const HOURS = Array.from({ length: 17 }, (_, i) => i + 7) // 7:00 - 23:00
 
 const COL_TZ = "America/Bogota"
 
@@ -59,7 +59,7 @@ function getWeekDays(dateStr: string) {
 // ── Real-time timeline constants ────────────────────────────
 const HOUR_HEIGHT = 64 // px per hour
 const TL_START = 7    // 7 AM
-const TL_END = 22     // 10 PM
+const TL_END = 24     // 12 AM (midnight)
 
 function getColombiaMinute(date: Date): number {
   return parseInt(new Intl.DateTimeFormat("en-US", { minute: "numeric", timeZone: COL_TZ }).format(date))
