@@ -11,10 +11,29 @@ export async function GET(req: NextRequest) {
   const role = (session?.user as any)?.role
   if (role !== "ADMIN") return NextResponse.json({ error: "No autorizado" }, { status: 401 })
 
+  const { searchParams } = new URL(req.url)
+  const sendTo = searchParams.get("sendTo")
+
   // List all push subscriptions
   const subs = await prisma.pushSubscription.findMany({
     include: { user: { select: { id: true, name: true, role: true } } },
   })
+
+  // If sendTo param provided, also try sending a test push
+  let sendResult: any = null
+  if (sendTo) {
+    try {
+      await sendPushToUser(sendTo, {
+        title: "🔔 Prueba de notificación",
+        body: "Si ves esto, las notificaciones push funcionan ✅",
+        url: "/dashboard",
+        tag: "test",
+      })
+      sendResult = { ok: true, sentTo: sendTo }
+    } catch (err: any) {
+      sendResult = { ok: false, error: err.message }
+    }
+  }
 
   return NextResponse.json({
     total: subs.length,
@@ -26,6 +45,7 @@ export async function GET(req: NextRequest) {
       createdAt: s.createdAt,
     })),
     vapidPublicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY?.slice(0, 20) + "...",
+    sendResult,
   })
 }
 
