@@ -625,39 +625,63 @@ export default function AppointmentsPage() {
                     )}
 
                     {/* Content */}
-                    <div className="relative z-10 flex items-start justify-between h-full p-2 bg-[#1a0a0a]/60">
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
-                          {apt.user?.name || "Cliente"}
-                        </p>
-                        <p className="text-[10px] text-white/40 truncate">{apt.service.name}</p>
-                        {active && (
-                          <p className="text-[10px] text-[#e84118] font-medium mt-0.5">
-                            {remaining} min restantes
+                    <div className="relative z-10 flex flex-col h-full p-2 bg-[#1a0a0a]/60">
+                      {/* Top row: name + status badge */}
+                      <div className="flex items-start justify-between gap-1">
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
+                            {apt.user?.name || "Cliente"}
                           </p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-1">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${STATUS_MAP[apt.status]?.color}`}>
+                          <p className="text-[10px] text-white/40 truncate">{apt.service.name}</p>
+                          {active && (
+                            <p className="text-[10px] text-[#e84118] font-medium mt-0.5">
+                              {remaining} min restantes
+                            </p>
+                          )}
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.color}`}>
                           {STATUS_MAP[apt.status]?.label}
                         </span>
-                        {height > 44 && (apt.status === "PENDING" || apt.status === "CONFIRMED") && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => updateStatus(apt.id, "COMPLETED")}
-                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={() => updateStatus(apt.id, "NO_SHOW")}
-                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40"
-                            >
-                              ✗
-                            </button>
-                          </div>
-                        )}
                       </div>
+
+                      {/* Bottom: action buttons */}
+                      {(apt.status === "PENDING" || apt.status === "CONFIRMED") && height > 48 && (
+                        <div className="mt-auto flex gap-1 pt-1">
+                          {active ? (
+                            // Cita activa: botón prominente "Terminar"
+                            <>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
+                                className="flex-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-green-600/30 text-green-300 border border-green-600/30 hover:bg-green-600/50 transition active:scale-95"
+                              >
+                                ✓ Terminar
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
+                                className="text-[10px] px-2 py-1 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
+                              >
+                                ✗
+                              </button>
+                            </>
+                          ) : (
+                            // Cita futura: botones pequeños
+                            <>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
+                                className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
+                                className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
+                              >
+                                ✗
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
