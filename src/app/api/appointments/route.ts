@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage, sendWhatsAppTemplate, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate, buildConfirmationMessage, buildBarberNotification, buildStatusConfirmedMessage } from "@/lib/twilio"
 import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
 import { sendPushToBarber } from "@/lib/push"
 
@@ -215,6 +215,7 @@ export async function POST(req: NextRequest) {
   // Build appointment link for client
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
   const appointmentLink = `${baseUrl}/cita/${appointment.token}`
+  const queueLink = `${baseUrl}/cola`
 
   // Send WhatsApp confirmation to client
   const shopName = settings?.shopName || "Mi Barbería"
@@ -238,7 +239,8 @@ export async function POST(req: NextRequest) {
           formatDate(appointment.date),
           formatTime(appointment.date),
           shopName,
-          appointmentLink
+          appointmentLink,
+          queueLink
         )
         await sendWhatsAppMessage(user.phone, message)
       }
@@ -300,6 +302,26 @@ export async function PATCH(req: NextRequest) {
     data: { status: body.status },
     include: { service: true, user: true },
   })
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
+  const queueLink = `${baseUrl}/cola`
+
+  // When confirming, notify the client
+  if (body.status === "CONFIRMED" && appointment.user.phone) {
+    try {
+      const settings = await prisma.barberSettings.findFirst()
+      const shopName = settings?.shopName || "Frailin Studio"
+      const msg = buildStatusConfirmedMessage(
+        appointment.user.name?.split(" ")[0] || "Cliente",
+        appointment.service.name,
+        formatDate(appointment.date),
+        formatTime(appointment.date),
+        shopName,
+        queueLink
+      )
+      sendWhatsAppMessage(appointment.user.phone, msg).catch(() => {})
+    } catch {}
+  }
 
   // When completing, notify the next client in queue
   if (body.status === "COMPLETED") {

@@ -69,11 +69,31 @@ export function buildConfirmationMessage(
   date: string,
   time: string,
   shopName: string,
-  appointmentLink?: string
+  appointmentLink?: string,
+  queueLink?: string
 ): string {
   let msg = `✅ *Cita Confirmada*\n\nHola ${clientName}, tu cita ha sido agendada:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}`
   if (appointmentLink) {
     msg += `\n\n🔗 Ver o cancelar tu cita:\n${appointmentLink}`
+  }
+  if (queueLink) {
+    msg += `\n\n📍 Ver cola en vivo el día de tu cita:\n${queueLink}`
+  }
+  msg += `\n\n¡Te esperamos!`
+  return msg
+}
+
+export function buildStatusConfirmedMessage(
+  clientName: string,
+  serviceName: string,
+  date: string,
+  time: string,
+  shopName: string,
+  queueLink?: string
+): string {
+  let msg = `✅ *Cita Confirmada por el barbero*\n\nHola ${clientName}, tu cita ha sido confirmada:\n\n📋 Servicio: ${serviceName}\n📅 Fecha: ${date}\n🕐 Hora: ${time}\n💈 ${shopName}`
+  if (queueLink) {
+    msg += `\n\n📍 Ver cola en vivo el día de tu cita:\n${queueLink}`
   }
   msg += `\n\n¡Te esperamos!`
   return msg
