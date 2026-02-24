@@ -93,14 +93,14 @@ export default async function Home() {
           </span>
 
           <h2 className="animate-fade-up delay-300 text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Tu estilo, tu{" "}
+            Saliendo es saliendo,{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e84118] to-[#f0932b]">
-              fuego
+              efectivo
             </span>
           </h2>
 
           <p className="animate-fade-up delay-400 text-lg md:text-xl text-white/50 mb-10 max-w-lg">
-            Agenda tu cita en segundos. Sin llamadas, sin esperas. Estilo que arde.
+            Agenda tu cita en segundos. Sin llamadas, sin esperas. Pa&apos; la calle bien bacano.
           </p>
 
           <div className="animate-fade-up delay-500 flex flex-col sm:flex-row gap-4">
