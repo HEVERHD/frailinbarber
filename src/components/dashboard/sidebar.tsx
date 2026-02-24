@@ -81,7 +81,7 @@ async function unsubscribeFromPush(): Promise<void> {
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+  return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(buffer)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
 }
 
 
