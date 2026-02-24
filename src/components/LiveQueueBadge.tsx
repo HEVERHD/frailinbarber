@@ -65,7 +65,10 @@ export default function LiveQueueBadge() {
 
   const active = appointments.find((a) => isActive(a, now))
   const waiting = appointments.filter(
-    (a) => !isActive(a, now) && a.status !== "COMPLETED" && new Date(a.date) > now
+    (a) =>
+      !isActive(a, now) &&
+      (a.status === "CONFIRMED" || a.status === "PENDING") &&
+      new Date(a.date) > now
   )
 
   if (!active && waiting.length === 0) return null

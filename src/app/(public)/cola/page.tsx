@@ -85,7 +85,10 @@ export default function ColaPage() {
 
   const active = data?.appointments.find((a) => isActive(a, now))
   const upcoming = data?.appointments.filter(
-    (a) => !isActive(a, now) && a.status !== "COMPLETED" && new Date(a.date) > now
+    (a) =>
+      !isActive(a, now) &&
+      (a.status === "CONFIRMED" || a.status === "PENDING") &&
+      new Date(a.date) > now
   ) ?? []
   const totalPosition = data?.appointments.filter(
     (a) => a.status !== "COMPLETED"

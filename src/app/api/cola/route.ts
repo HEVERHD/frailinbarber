@@ -32,16 +32,24 @@ export async function GET() {
 
   const shopName = appointments[0]?.barber?.barberSettings?.shopName || "Frailin Studio"
 
-  return NextResponse.json({
-    shopName,
-    appointments: appointments.map((apt) => ({
-      id: apt.id,
-      clientName: maskName(apt.user.name),
-      serviceName: apt.service.name,
-      duration: apt.service.duration,
-      date: apt.date,
-      status: apt.status,
-    })),
-    updatedAt: new Date().toISOString(),
-  })
+  return NextResponse.json(
+    {
+      shopName,
+      appointments: appointments.map((apt) => ({
+        id: apt.id,
+        clientName: maskName(apt.user.name),
+        serviceName: apt.service.name,
+        duration: apt.service.duration,
+        date: apt.date,
+        status: apt.status,
+      })),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        Pragma: "no-cache",
+      },
+    }
+  )
 }
