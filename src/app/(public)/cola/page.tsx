@@ -115,7 +115,7 @@ export default function ColaPage() {
             {/* En silla ahora */}
             <div className="mb-6">
               <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2 text-center">
-                En silla ahora
+                Peluqueándose ahora
               </p>
               {active ? (
                 <div className="bg-[#2d1515] border border-[#e84118]/50 rounded-2xl p-5 shadow-lg shadow-[#e84118]/10">
@@ -124,7 +124,11 @@ export default function ColaPage() {
                       <p className="text-white font-bold text-lg">{active.clientName}</p>
                       <p className="text-white/50 text-sm">{active.serviceName}</p>
                     </div>
-                    <span className="bg-[#e84118]/20 text-[#e84118] text-xs px-2 py-1 rounded-full font-medium">
+                    <span className="flex items-center gap-1.5 bg-[#e84118]/20 text-[#e84118] text-xs px-2.5 py-1 rounded-full font-medium">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#e84118]" />
+                      </span>
                       En curso
                     </span>
                   </div>
@@ -146,7 +150,7 @@ export default function ColaPage() {
                 </div>
               ) : (
                 <div className="bg-[#2d1515] border border-[#3d2020] rounded-2xl p-5 text-center">
-                  <p className="text-white/30 text-sm">Ningún servicio en curso</p>
+                  <p className="text-white/30 text-sm">Nadie en la silla en este momento</p>
                 </div>
               )}
             </div>

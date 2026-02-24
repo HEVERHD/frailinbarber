@@ -2,6 +2,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { prisma } from "@/lib/prisma"
 import { to12Hour } from "@/lib/utils"
+import LiveQueueBadge from "@/components/LiveQueueBadge"
 
 export const dynamic = "force-dynamic"
 
@@ -98,6 +99,11 @@ export default async function Home() {
             >
               Ver Servicios
             </a>
+          </div>
+
+          {/* Cola en vivo */}
+          <div className="mt-6">
+            <LiveQueueBadge />
           </div>
 
           {/* Stats */}
