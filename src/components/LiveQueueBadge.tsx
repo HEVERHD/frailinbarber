@@ -57,7 +57,7 @@ export default function LiveQueueBadge() {
   }, [fetchQueue])
 
   useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 30000)
+    const interval = setInterval(() => setNow(new Date()), 60000)
     return () => clearInterval(interval)
   }, [])
 
@@ -80,6 +80,14 @@ export default function LiveQueueBadge() {
     : null
   const almostBusy = !active && minsToNext !== null && minsToNext <= 10
 
+  // Progress for active service
+  const progress = active
+    ? Math.min(100, ((now.getTime() - new Date(active.date).getTime()) / (active.duration * 60000)) * 100)
+    : 0
+  const remaining = active
+    ? Math.max(0, Math.ceil((aptEndTime(active).getTime() - now.getTime()) / 60000))
+    : 0
+
   return (
     <Link
       href="/booking"
@@ -91,18 +99,43 @@ export default function LiveQueueBadge() {
     >
       {/* Estado principal */}
       {active ? (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
-          <span className="relative flex h-2 w-2 flex-shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#e84118]" />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold truncate">
-              Peluqueando a {active.clientName}
-            </p>
-            <p className="text-white/40 text-xs truncate">{active.serviceName}</p>
+        <div className="border-b border-white/5">
+          {/* Header row */}
+          <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+            <span className="relative flex h-2 w-2 flex-shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#e84118]" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-semibold truncate leading-tight">
+                Peluqueando a {active.clientName}
+              </p>
+              <p className="text-white/40 text-xs truncate">{active.serviceName}</p>
+            </div>
+            <span className="text-[#e84118] text-xs font-bold flex-shrink-0 tabular-nums">
+              {remaining} min
+            </span>
           </div>
-          <span className="text-[#e84118] text-xs font-medium flex-shrink-0">En curso</span>
+
+          {/* Progress bar */}
+          <div className="px-4 pb-3">
+            <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="absolute inset-y-0 left-0 rounded-full"
+                style={{
+                  width: `${progress}%`,
+                  background: "linear-gradient(90deg, #c0392b, #e84118, #ff6b35)",
+                  boxShadow: "0 0 10px rgba(232,65,24,0.7)",
+                  transition: "width 2s ease",
+                }}
+              />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="text-[9px] text-white/25">{formatTime(active.date)}</span>
+              <span className="text-[9px] text-white/25 tabular-nums">{Math.round(progress)}%</span>
+              <span className="text-[9px] text-white/25">{formatTime(aptEndTime(active).toISOString())}</span>
+            </div>
+          </div>
         </div>
       ) : almostBusy ? (
         <div className="flex items-center gap-3 px-4 py-3 border-b border-amber-500/20">
