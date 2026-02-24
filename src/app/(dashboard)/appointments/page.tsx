@@ -604,85 +604,88 @@ export default function AppointmentsPage() {
                 const progress = active ? getProgress(apt) : 0
                 const remaining = active ? getRemainingMin(apt) : 0
 
+                // Necesita botón manual: activo O pasado-sin-completar
+                const needsAction = (apt.status === "PENDING" || apt.status === "CONFIRMED") &&
+                  (active || past)
+
                 return (
                   <div
                     key={apt.id}
-                    className={`absolute left-1 right-1 rounded-xl overflow-hidden border transition-opacity ${
-                      past && apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
-                        ? "opacity-40 border-[#3d2020]"
-                        : active
-                        ? "border-[#e84118] shadow-lg shadow-[#e84118]/20"
-                        : "border-[#3d2020]"
-                    }`}
-                    style={{ top: top + 1, height: height - 2 }}
+                    className="absolute left-1"
+                    style={{ top: top + 1, height: height - 2, right: needsAction ? "28px" : "4px" }}
                   >
-                    {/* Progress bar fill for active appointment */}
-                    {active && (
-                      <div
-                        className="absolute inset-0 bg-[#e84118]/20 transition-all duration-1000"
-                        style={{ width: `${progress}%` }}
-                      />
-                    )}
-
-                    {/* Content */}
-                    <div className="relative z-10 flex flex-col h-full p-2 bg-[#1a0a0a]/60">
-                      {/* Top row: name + status badge */}
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
-                            {apt.user?.name || "Cliente"}
-                          </p>
-                          <p className="text-[10px] text-white/40 truncate">{apt.service.name}</p>
-                          {active && (
-                            <p className="text-[10px] text-[#e84118] font-medium mt-0.5">
-                              {remaining} min restantes
-                            </p>
-                          )}
-                        </div>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.color}`}>
-                          {STATUS_MAP[apt.status]?.label}
-                        </span>
-                      </div>
-
-                      {/* Bottom: action buttons */}
-                      {(apt.status === "PENDING" || apt.status === "CONFIRMED") && height > 48 && (
-                        <div className="mt-auto flex gap-1 pt-1">
-                          {active ? (
-                            // Cita activa: botón prominente "Terminar"
-                            <>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
-                                className="flex-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-green-600/30 text-green-300 border border-green-600/30 hover:bg-green-600/50 transition active:scale-95"
-                              >
-                                ✓ Terminar
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
-                                className="text-[10px] px-2 py-1 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
-                              >
-                                ✗
-                              </button>
-                            </>
-                          ) : (
-                            // Cita futura: botones pequeños
-                            <>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
-                                className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
-                                className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
-                              >
-                                ✗
-                              </button>
-                            </>
-                          )}
-                        </div>
+                    {/* Bloque principal */}
+                    <div
+                      className={`h-full rounded-xl overflow-hidden border transition-opacity ${
+                        past && apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
+                          ? "opacity-50 border-[#3d2020]"
+                          : active
+                          ? "border-[#e84118] shadow-lg shadow-[#e84118]/20"
+                          : "border-[#3d2020]"
+                      }`}
+                    >
+                      {/* Progress bar fill for active appointment */}
+                      {active && (
+                        <div
+                          className="absolute inset-0 bg-[#e84118]/20 transition-all duration-1000"
+                          style={{ width: `${progress}%` }}
+                        />
                       )}
+
+                      {/* Content */}
+                      <div className="relative z-10 flex flex-col h-full p-2 bg-[#1a0a0a]/60">
+                        {/* Top row: name + status badge */}
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
+                              {apt.user?.name || "Cliente"}
+                            </p>
+                            <p className="text-[10px] text-white/40 truncate">{apt.service.name}</p>
+                            {active && (
+                              <p className="text-[10px] text-[#e84118] font-medium mt-0.5">
+                                {remaining} min restantes
+                              </p>
+                            )}
+                          </div>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.color}`}>
+                            {STATUS_MAP[apt.status]?.label}
+                          </span>
+                        </div>
+
+                        {/* Botones dentro del bloque (citas futuras con espacio) */}
+                        {(apt.status === "PENDING" || apt.status === "CONFIRMED") && height > 60 && !active && !past && (
+                          <div className="mt-auto flex gap-1 pt-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
+                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
+                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
+                            >
+                              ✗
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Botón lateral flotante: siempre visible para activo o pasado sin completar */}
+                    {needsAction && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
+                        className={`absolute top-0 -right-7 h-full w-6 rounded-r-xl flex items-center justify-center transition active:scale-95 ${
+                          active
+                            ? "bg-green-600/70 hover:bg-green-500 text-white"
+                            : "bg-green-900/50 hover:bg-green-700/70 text-green-400"
+                        }`}
+                        title="Marcar como completado"
+                      >
+                        <span className="text-[11px] font-bold">✓</span>
+                      </button>
+                    )}
                   </div>
                 )
               })}
