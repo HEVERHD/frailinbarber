@@ -301,6 +301,29 @@ export async function PATCH(req: NextRequest) {
     include: { service: true, user: true },
   })
 
+  // When completing, notify the next client in queue
+  if (body.status === "COMPLETED") {
+    try {
+      const dateStr = getColombiaDateStr(new Date(appointment.date))
+      const nextApt = await prisma.appointment.findFirst({
+        where: {
+          date: {
+            gt: appointment.date,
+            lt: parseColombia(dateStr + "T23:59:59"),
+          },
+          status: { in: ["CONFIRMED", "PENDING"] },
+        },
+        include: { user: true, service: true },
+        orderBy: { date: "asc" },
+      })
+      if (nextApt?.user.phone) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000"
+        const msg = `¡Hola ${nextApt.user.name?.split(" ")[0] || ""}! 💈 Es casi tu turno en Frailin Studio. Tu cita de *${nextApt.service.name}* está próxima. Ve preparándote. 🙌\n\n📍 ${baseUrl}/cola`
+        sendWhatsAppMessage(nextApt.user.phone, msg).catch(() => {})
+      }
+    } catch {}
+  }
+
   // When cancelling, notify waitlist entries for that date
   if (body.status === "CANCELLED") {
     try {
