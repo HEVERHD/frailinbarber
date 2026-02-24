@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   const barbers = await prisma.user.findMany({
-    where: { role: { in: ["BARBER", "ADMIN"] } },
+    where: { role: "BARBER" },
     select: {
       id: true,
       name: true,

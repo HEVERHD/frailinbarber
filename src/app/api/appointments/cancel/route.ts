@@ -12,7 +12,11 @@ export async function POST(req: NextRequest) {
 
   const appointment = await prisma.appointment.findUnique({
     where: { token },
-    include: { service: true, user: true },
+    include: {
+      service: true,
+      user: true,
+      barber: { select: { phone: true, barberSettings: { select: { phone: true } } } },
+    },
   })
 
   if (!appointment) {
@@ -32,28 +36,19 @@ export async function POST(req: NextRequest) {
     include: { service: true, user: true },
   })
 
-  // Notify barbers about the cancellation
+  // Notify only the barber assigned to this appointment
   try {
-    const barbers = await prisma.user.findMany({
-      where: { role: { in: ["BARBER", "ADMIN"] } },
-      select: {
-        phone: true,
-        barberSettings: { select: { phone: true } },
-      },
-    })
+    const barberPhone = appointment.barber.barberSettings?.phone || appointment.barber.phone
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
-    const agendaLink = baseUrl ? `${baseUrl}/dashboard` : ""
-    const clientName = updated.user.name || "Cliente"
-    const cancelTemplateSid = process.env.TWILIO_TEMPLATE_CANCEL
-    const freeFormMsg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.${agendaLink ? `\n\n📅 Ver agenda: ${agendaLink}` : ""}`
-
-    for (const barber of barbers) {
-      const phone = barber.phone || barber.barberSettings?.phone
-      if (!phone) continue
+    if (barberPhone) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+      const agendaLink = baseUrl ? `${baseUrl}/dashboard` : ""
+      const clientName = updated.user.name || "Cliente"
+      const cancelTemplateSid = process.env.TWILIO_TEMPLATE_CANCEL
+      const freeFormMsg = `❌ *Cita Cancelada*\n\n👤 Cliente: ${clientName}\n📋 Servicio: ${updated.service.name}\n📅 Fecha: ${formatDate(updated.date)}\n🕐 Hora: ${formatTime(updated.date)}\n\nEl cliente canceló su cita.${agendaLink ? `\n\n📅 Ver agenda: ${agendaLink}` : ""}`
 
       if (cancelTemplateSid) {
-        sendWhatsAppTemplate(phone, cancelTemplateSid, {
+        sendWhatsAppTemplate(barberPhone, cancelTemplateSid, {
           "1": clientName,
           "2": updated.service.name,
           "3": formatDate(updated.date),
@@ -63,13 +58,13 @@ export async function POST(req: NextRequest) {
           console.error("Error notifying barber about cancellation:", err)
         )
       } else {
-        sendWhatsAppMessage(phone, freeFormMsg).catch((err) =>
+        sendWhatsAppMessage(barberPhone, freeFormMsg).catch((err) =>
           console.error("Error notifying barber about cancellation:", err)
         )
       }
     }
   } catch (error) {
-    console.error("Error notifying barbers:", error)
+    console.error("Error notifying barber:", error)
   }
 
   return NextResponse.json({ success: true })
