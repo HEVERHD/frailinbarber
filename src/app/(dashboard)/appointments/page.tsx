@@ -28,6 +28,16 @@ const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> 
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"]
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7:00 - 19:00
 
+const COL_TZ = "America/Bogota"
+
+function colombiaDateStr(date: Date): string {
+  return date.toLocaleDateString("sv-SE", { timeZone: COL_TZ })
+}
+
+function colombiaHour(date: Date): number {
+  return parseInt(date.toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: COL_TZ }))
+}
+
 function getWeekDays(dateStr: string) {
   const date = new Date(dateStr + "T12:00:00")
   const day = date.getDay()
@@ -38,10 +48,10 @@ function getWeekDays(dateStr: string) {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)
     return {
-      date: d.toISOString().split("T")[0],
+      date: colombiaDateStr(d),
       dayName: DAYS_ES[d.getDay()],
       dayNum: d.getDate(),
-      isToday: d.toISOString().split("T")[0] === new Date().toISOString().split("T")[0],
+      isToday: colombiaDateStr(d) === colombiaDateStr(new Date()),
     }
   })
 }
@@ -49,7 +59,7 @@ function getWeekDays(dateStr: string) {
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [weekAppointments, setWeekAppointments] = useState<Appointment[]>([])
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [selectedDate, setSelectedDate] = useState(() => colombiaDateStr(new Date()))
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [showNewForm, setShowNewForm] = useState(false)
@@ -84,7 +94,7 @@ export default function AppointmentsPage() {
   const dayAppointments = useMemo(() => {
     return weekAppointments
       .filter((apt) => {
-        const aptDate = new Date(apt.date).toISOString().split("T")[0]
+        const aptDate = colombiaDateStr(new Date(apt.date))
         return aptDate === selectedDate && apt.status !== "CANCELLED"
       })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -258,16 +268,15 @@ export default function AppointmentsPage() {
   }
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split("T")[0])
+    setSelectedDate(colombiaDateStr(new Date()))
   }
 
   const getAppointmentsForDayHour = (dayDate: string, hour: number) => {
     return weekAppointments.filter((apt) => {
       const aptDate = new Date(apt.date)
-      const aptDateStr = aptDate.toISOString().split("T")[0]
       return (
-        aptDateStr === dayDate &&
-        aptDate.getHours() === hour &&
+        colombiaDateStr(aptDate) === dayDate &&
+        colombiaHour(aptDate) === hour &&
         apt.status !== "CANCELLED"
       )
     })
@@ -276,7 +285,7 @@ export default function AppointmentsPage() {
   // Count appointments per day for the week strip badges
   const getDayCount = (dayDate: string) => {
     return weekAppointments.filter((apt) => {
-      const aptDateStr = new Date(apt.date).toISOString().split("T")[0]
+      const aptDateStr = colombiaDateStr(new Date(apt.date))
       return aptDateStr === dayDate && apt.status !== "CANCELLED"
     }).length
   }
