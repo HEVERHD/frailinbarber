@@ -73,12 +73,23 @@ export default function LiveQueueBadge() {
 
   if (!active && waiting.length === 0) return null
 
+  // Minutos hasta el próximo turno (solo cuando el barbero está libre)
+  const nextApt = waiting[0]
+  const minsToNext = nextApt
+    ? Math.ceil((new Date(nextApt.date).getTime() - now.getTime()) / 60000)
+    : null
+  const almostBusy = !active && minsToNext !== null && minsToNext <= 10
+
   return (
     <Link
-      href="/cola"
-      className="inline-block text-left w-full max-w-xs bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:border-[#e84118]/30 hover:bg-white/8 transition-all group"
+      href="/booking"
+      className={`inline-block text-left w-full max-w-xs rounded-2xl overflow-hidden transition-all group ${
+        almostBusy
+          ? "bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/15 hover:border-amber-500/60"
+          : "bg-white/5 border border-white/10 hover:border-[#e84118]/30 hover:bg-white/8"
+      }`}
     >
-      {/* Activo ahora */}
+      {/* Estado principal */}
       {active ? (
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
           <span className="relative flex h-2 w-2 flex-shrink-0">
@@ -92,6 +103,16 @@ export default function LiveQueueBadge() {
             <p className="text-white/40 text-xs truncate">{active.serviceName}</p>
           </div>
           <span className="text-[#e84118] text-xs font-medium flex-shrink-0">En curso</span>
+        </div>
+      ) : almostBusy ? (
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-amber-500/20">
+          <span className="text-lg flex-shrink-0">⚡</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-300 text-sm font-bold leading-tight">
+              ¡Agenda ya! Se ocupa en {minsToNext} min
+            </p>
+            <p className="text-amber-400/60 text-xs">Última oportunidad disponible</p>
+          </div>
         </div>
       ) : (
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
@@ -124,10 +145,12 @@ export default function LiveQueueBadge() {
       )}
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-white/5 flex items-center justify-between">
-        <p className="text-white/20 text-[10px]">Cola en vivo · actualiza cada 30s</p>
+      <div className={`px-4 py-2 border-t flex items-center justify-between ${almostBusy ? "border-amber-500/20" : "border-white/5"}`}>
+        <p className={`text-[10px] ${almostBusy ? "text-amber-400/50" : "text-white/20"}`}>
+          {almostBusy ? "Toca para agendar ahora →" : "Cola en vivo · actualiza cada 30s"}
+        </p>
         <svg
-          className="w-3 h-3 text-white/20 group-hover:text-[#e84118] transition"
+          className={`w-3 h-3 transition ${almostBusy ? "text-amber-400/60 group-hover:text-amber-300" : "text-white/20 group-hover:text-[#e84118]"}`}
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
