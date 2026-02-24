@@ -56,6 +56,21 @@ function getWeekDays(dateStr: string) {
   })
 }
 
+// ── Real-time timeline constants ────────────────────────────
+const HOUR_HEIGHT = 64 // px per hour
+const TL_START = 7    // 7 AM
+const TL_END = 20     // 8 PM
+
+function getColombiaMinute(date: Date): number {
+  return parseInt(new Intl.DateTimeFormat("en-US", { minute: "numeric", timeZone: COL_TZ }).format(date))
+}
+function timeToY(h: number, m: number): number {
+  return ((h - TL_START) * 60 + m) / 60 * HOUR_HEIGHT
+}
+function aptEndTime(apt: { date: string; service: { duration: number } }): Date {
+  return new Date(new Date(apt.date).getTime() + apt.service.duration * 60000)
+}
+
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [weekAppointments, setWeekAppointments] = useState<Appointment[]>([])
@@ -83,10 +98,31 @@ export default function AppointmentsPage() {
   const [dayOff, setDayOff] = useState(false)
   const [barbers, setBarbers] = useState<any[]>([])
   const [selectedBarberId, setSelectedBarberId] = useState("")
+  const [now, setNow] = useState(new Date())
   const { toast } = useToast()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
   const userId = (session?.user as any)?.id || ""
+
+  // ── Real-time clock (updates every 30s) ──
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // ── Helpers that depend on `now` ──
+  const isActive = (apt: Appointment) => {
+    const start = new Date(apt.date)
+    const end = aptEndTime(apt)
+    return now >= start && now < end && (apt.status === "CONFIRMED" || apt.status === "PENDING")
+  }
+  const isPast = (apt: Appointment) => now >= aptEndTime(apt)
+  const getProgress = (apt: Appointment) => {
+    const elapsed = now.getTime() - new Date(apt.date).getTime()
+    return Math.min(100, (elapsed / (apt.service.duration * 60000)) * 100)
+  }
+  const getRemainingMin = (apt: Appointment) =>
+    Math.max(0, Math.ceil((aptEndTime(apt).getTime() - now.getTime()) / 60000))
 
   const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate])
 
@@ -160,6 +196,16 @@ export default function AppointmentsPage() {
       fetchSlots()
     }
   }, [selectedDate, newApt.serviceId, showNewForm, selectedBarberId])
+
+  // ── Auto-complete past appointments (runs every 30s when viewing today) ──
+  useEffect(() => {
+    if (selectedDate !== colombiaDateStr(new Date())) return
+    weekAppointments.forEach((apt) => {
+      if ((apt.status === "CONFIRMED" || apt.status === "PENDING") && isPast(apt)) {
+        updateStatus(apt.id, "COMPLETED")
+      }
+    })
+  }, [now])
 
   // Search clients as user types
   useEffect(() => {
@@ -507,76 +553,126 @@ export default function AppointmentsPage() {
           })}
         </div>
 
-        {/* Day timeline */}
-        <div className="space-y-2">
-          {dayAppointments.length === 0 ? (
-            <div className="text-center py-10 bg-[#2d1515] rounded-xl border border-[#3d2020]">
+        {/* ── Proportional real-time timeline ── */}
+        <div className="bg-[#2d1515] rounded-xl border border-[#3d2020] overflow-hidden">
+          {dayAppointments.length === 0 && selectedDate !== colombiaDateStr(now) ? (
+            <div className="text-center py-10">
               <p className="text-3xl mb-2">📅</p>
-              <p className="text-white/30 text-sm">Sin citas para este dia</p>
+              <p className="text-white/30 text-sm">Sin citas para este día</p>
             </div>
           ) : (
-            dayAppointments.map((apt) => (
-              <div
-                key={apt.id}
-                className="bg-[#2d1515] rounded-xl p-3 border border-[#3d2020]"
-              >
-                <div className="flex items-center gap-3">
-                  {/* Time column */}
-                  <div className="text-center min-w-[48px]">
-                    <p className="text-sm font-bold text-white">
-                      {new Date(apt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true })}
-                    </p>
-                    <p className="text-[10px] text-white/30">{apt.service.duration}min</p>
-                  </div>
-
-                  {/* Divider */}
-                  <div className={`w-1 h-10 rounded-full ${STATUS_MAP[apt.status]?.dot}`} />
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-white text-sm truncate">{apt.user?.name || "Cliente"}</p>
-                    <p className="text-xs text-white/40 truncate">{apt.service.name}</p>
-                  </div>
-
-                  {/* Status */}
-                  <span className={`text-[10px] px-2 py-1 rounded-full flex-shrink-0 ${STATUS_MAP[apt.status]?.color}`}>
-                    {STATUS_MAP[apt.status]?.label}
+            <div
+              className="relative ml-12"
+              style={{ height: (TL_END - TL_START) * HOUR_HEIGHT }}
+            >
+              {/* Hour grid lines + labels */}
+              {Array.from({ length: TL_END - TL_START + 1 }, (_, i) => i + TL_START).map((hour) => (
+                <div
+                  key={hour}
+                  className="absolute left-0 right-0 border-t border-[#3d2020]/60"
+                  style={{ top: (hour - TL_START) * HOUR_HEIGHT }}
+                >
+                  <span className="absolute -left-11 -top-2.5 text-[10px] text-white/25 w-10 text-right pr-1">
+                    {hourTo12(hour)}
                   </span>
                 </div>
+              ))}
 
-                {/* Actions */}
-                {(apt.status === "PENDING" || apt.status === "CONFIRMED") && (
-                  <div className="flex gap-1.5 mt-2 pt-2 border-t border-[#3d2020]">
-                    {apt.status === "PENDING" && (
-                      <button
-                        onClick={() => updateStatus(apt.id, "CONFIRMED")}
-                        className="text-[10px] px-2 py-1 rounded-lg bg-blue-900/30 text-blue-400"
-                      >
-                        Confirmar
-                      </button>
-                    )}
-                    <button
-                      onClick={() => updateStatus(apt.id, "COMPLETED")}
-                      className="text-[10px] px-2 py-1 rounded-lg bg-green-900/30 text-green-400"
-                    >
-                      Completar
-                    </button>
-                    <button
-                      onClick={() => updateStatus(apt.id, "NO_SHOW")}
-                      className="text-[10px] px-2 py-1 rounded-lg bg-[#3d2020] text-white/50"
-                    >
-                      No asistio
-                    </button>
-                    <button
-                      onClick={() => updateStatus(apt.id, "CANCELLED")}
-                      className="text-[10px] px-2 py-1 rounded-lg bg-red-900/30 text-red-400"
-                    >
-                      Cancelar
-                    </button>
+              {/* Current time red line (only when viewing today) */}
+              {selectedDate === colombiaDateStr(now) && (() => {
+                const nowH = colombiaHour(now)
+                const nowM = getColombiaMinute(now)
+                if (nowH < TL_START || nowH >= TL_END) return null
+                const y = timeToY(nowH, nowM)
+                const timeLabel = now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: COL_TZ })
+                return (
+                  <div className="absolute left-0 right-0 z-20 flex items-center" style={{ top: y }}>
+                    <div className="w-2 h-2 rounded-full bg-red-500 -ml-1 flex-shrink-0" />
+                    <div className="flex-1 h-px bg-red-500" />
+                    <span className="text-[9px] text-red-400 px-1 bg-[#2d1515] flex-shrink-0">{timeLabel}</span>
                   </div>
-                )}
-              </div>
-            ))
+                )
+              })()}
+
+              {/* Appointment blocks */}
+              {dayAppointments.map((apt) => {
+                const { h, m } = { h: colombiaHour(new Date(apt.date)), m: getColombiaMinute(new Date(apt.date)) }
+                const top = timeToY(h, m)
+                const height = Math.max((apt.service.duration / 60) * HOUR_HEIGHT, 36)
+                const active = isActive(apt)
+                const past = isPast(apt)
+                const progress = active ? getProgress(apt) : 0
+                const remaining = active ? getRemainingMin(apt) : 0
+
+                return (
+                  <div
+                    key={apt.id}
+                    className={`absolute left-1 right-1 rounded-xl overflow-hidden border transition-opacity ${
+                      past && apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
+                        ? "opacity-40 border-[#3d2020]"
+                        : active
+                        ? "border-[#e84118] shadow-lg shadow-[#e84118]/20"
+                        : "border-[#3d2020]"
+                    }`}
+                    style={{ top: top + 1, height: height - 2 }}
+                  >
+                    {/* Progress bar fill for active appointment */}
+                    {active && (
+                      <div
+                        className="absolute inset-0 bg-[#e84118]/20 transition-all duration-1000"
+                        style={{ width: `${progress}%` }}
+                      />
+                    )}
+
+                    {/* Content */}
+                    <div className="relative z-10 flex items-start justify-between h-full p-2 bg-[#1a0a0a]/60">
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
+                          {apt.user?.name || "Cliente"}
+                        </p>
+                        <p className="text-[10px] text-white/40 truncate">{apt.service.name}</p>
+                        {active && (
+                          <p className="text-[10px] text-[#e84118] font-medium mt-0.5">
+                            {remaining} min restantes
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-1">
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${STATUS_MAP[apt.status]?.color}`}>
+                          {STATUS_MAP[apt.status]?.label}
+                        </span>
+                        {height > 44 && (apt.status === "PENDING" || apt.status === "CONFIRMED") && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => updateStatus(apt.id, "COMPLETED")}
+                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => updateStatus(apt.id, "NO_SHOW")}
+                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40"
+                            >
+                              ✗
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Empty state overlay when no appointments but viewing today */}
+              {dayAppointments.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-center">
+                    <p className="text-3xl mb-1">📅</p>
+                    <p className="text-white/20 text-xs">Sin citas hoy</p>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
