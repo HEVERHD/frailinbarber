@@ -95,13 +95,13 @@ export function Sidebar() {
   const [ready, setReady] = useState(false)
   const [pushState, setPushState] = useState<PushState>("unsubscribed")
   const [pushLoading, setPushLoading] = useState(false)
+  const [showPwaHint, setShowPwaHint] = useState(false)
   const pathname = usePathname()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
 
   useEffect(() => {
     setReady(true)
-    // Check push support and current state
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
       setPushState("unsupported")
       return
@@ -118,7 +118,14 @@ export function Sidebar() {
   }, [])
 
   const handlePushToggle = async () => {
-    if (pushState === "unsupported" || pushState === "denied" || pushLoading) return
+    if (pushLoading) return
+    // On unsupported (iOS not installed as PWA), show hint instead
+    if (pushState === "unsupported") {
+      setShowPwaHint(true)
+      setTimeout(() => setShowPwaHint(false), 5000)
+      return
+    }
+    if (pushState === "denied") return
     setPushLoading(true)
     try {
       if (pushState === "subscribed") {
@@ -154,28 +161,34 @@ export function Sidebar() {
               <span className="text-[#e84118]">Frailin</span> Studio
             </h1>
           </div>
-          <div className="flex items-center gap-1">
-            {/* Push notification bell */}
-            {pushState !== "unsupported" && (
-              <button
-                onClick={handlePushToggle}
-                disabled={pushLoading || pushState === "denied"}
-                title={
-                  pushState === "subscribed" ? "Desactivar notificaciones"
-                  : pushState === "denied" ? "Notificaciones bloqueadas en el navegador"
-                  : "Activar notificaciones"
-                }
-                className={`p-2.5 rounded-xl transition ${
-                  pushState === "subscribed"
-                    ? "text-[#e84118] bg-[#e84118]/15"
-                    : pushState === "denied"
-                    ? "text-white/20 cursor-not-allowed"
-                    : "text-white/40 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
-              </button>
+          <div className="flex items-center gap-1 relative">
+            {/* PWA install hint tooltip */}
+            {showPwaHint && (
+              <div className="absolute right-0 top-10 z-50 bg-[#2d1515] border border-[#e84118]/40 rounded-xl p-3 w-56 text-xs text-white/80 shadow-xl">
+                <p className="font-semibold text-[#e84118] mb-1">Instala la app primero</p>
+                <p>En Safari → <span className="font-medium">Compartir</span> → <span className="font-medium">Añadir a pantalla de inicio</span> → luego activa las notificaciones.</p>
+              </div>
             )}
+            {/* Push notification bell — always visible */}
+            <button
+              onClick={handlePushToggle}
+              disabled={pushLoading || pushState === "denied"}
+              title={
+                pushState === "subscribed" ? "Desactivar notificaciones"
+                : pushState === "denied" ? "Notificaciones bloqueadas"
+                : pushState === "unsupported" ? "Instala la app para activar notificaciones"
+                : "Activar notificaciones"
+              }
+              className={`p-2.5 rounded-xl transition ${
+                pushState === "subscribed"
+                  ? "text-[#e84118] bg-[#e84118]/15"
+                  : pushState === "denied"
+                  ? "text-white/20 cursor-not-allowed"
+                  : "text-white/40 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
+            </button>
             {role === "ADMIN" && (
               <Link
                 href="/users"
@@ -244,27 +257,27 @@ export function Sidebar() {
         </nav>
 
         <div className="pt-4 border-t border-[#3d2020]">
-          {/* Push notification toggle */}
-          {pushState !== "unsupported" && (
-            <button
-              onClick={handlePushToggle}
-              disabled={pushLoading || pushState === "denied"}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition ${
-                pushState === "subscribed"
-                  ? "text-[#e84118] hover:bg-[#e84118]/10"
-                  : pushState === "denied"
-                  ? "text-white/20 cursor-not-allowed"
-                  : "text-white/60 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
-              {pushState === "subscribed"
-                ? "Notificaciones activas"
+          {/* Push notification toggle — always visible */}
+          <button
+            onClick={handlePushToggle}
+            disabled={pushLoading || pushState === "denied"}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition ${
+              pushState === "subscribed"
+                ? "text-[#e84118] hover:bg-[#e84118]/10"
                 : pushState === "denied"
-                ? "Notificaciones bloqueadas"
-                : "Activar notificaciones"}
-            </button>
-          )}
+                ? "text-white/20 cursor-not-allowed"
+                : "text-white/60 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
+            {pushState === "subscribed"
+              ? "Notificaciones activas"
+              : pushState === "denied"
+              ? "Notificaciones bloqueadas"
+              : pushState === "unsupported"
+              ? "Notificaciones (instala la app)"
+              : "Activar notificaciones"}
+          </button>
           <Link
             href="/booking"
             target="_blank"
