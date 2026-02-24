@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from "@/lib/twilio"
 import { formatDate, formatTime } from "@/lib/utils"
+import { sendPushToBarber } from "@/lib/push"
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json()
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
     include: {
       service: true,
       user: true,
-      barber: { select: { phone: true, barberSettings: { select: { phone: true } } } },
+      barber: { select: { id: true, phone: true, barberSettings: { select: { phone: true } } } },
     },
   })
 
@@ -66,6 +67,14 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error notifying barber:", error)
   }
+
+  // Push notification to the assigned barber
+  sendPushToBarber(appointment.barber.id, {
+    title: "❌ Cita cancelada",
+    body: `${updated.user.name || "Cliente"} canceló · ${updated.service.name} · ${formatDate(updated.date)} ${formatTime(updated.date)}`,
+    url: "/appointments",
+    tag: "cancelled-appointment",
+  }).catch(() => {})
 
   return NextResponse.json({ success: true })
 }

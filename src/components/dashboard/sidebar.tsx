@@ -17,6 +17,8 @@ import {
   Settings,
   ExternalLink,
   LogOut,
+  Bell,
+  BellOff,
 } from "lucide-react"
 
 const allNavItems = [
@@ -40,15 +42,100 @@ const allMobileNavItems = [
   { href: "/blocked-slots", label: "Bloqueos", Icon: Ban, roles: ["BARBER"] },
 ]
 
+type PushState = "unsupported" | "denied" | "subscribed" | "unsubscribed"
+
+async function subscribeToPush(): Promise<boolean> {
+  const reg = await navigator.serviceWorker.ready
+  const existing = await reg.pushManager.getSubscription()
+  if (existing) {
+    // Already subscribed, just save to DB
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint: existing.endpoint, keys: { p256dh: arrayBufferToBase64(existing.getKey("p256dh")!), auth: arrayBufferToBase64(existing.getKey("auth")!) } }),
+    })
+    return true
+  }
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!),
+  })
+  await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: sub.endpoint, keys: { p256dh: arrayBufferToBase64(sub.getKey("p256dh")!), auth: arrayBufferToBase64(sub.getKey("auth")!) } }),
+  })
+  return true
+}
+
+async function unsubscribeFromPush(): Promise<void> {
+  const reg = await navigator.serviceWorker.ready
+  const sub = await reg.pushManager.getSubscription()
+  if (!sub) return
+  await fetch("/api/push/subscribe", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: sub.endpoint }),
+  })
+  await sub.unsubscribe()
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+  const rawData = atob(base64)
+  return new Uint8Array([...rawData].map((c) => c.charCodeAt(0)))
+}
+
 export function Sidebar() {
   const [ready, setReady] = useState(false)
+  const [pushState, setPushState] = useState<PushState>("unsubscribed")
+  const [pushLoading, setPushLoading] = useState(false)
   const pathname = usePathname()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
 
   useEffect(() => {
     setReady(true)
+    // Check push support and current state
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported")
+      return
+    }
+    if (Notification.permission === "denied") {
+      setPushState("denied")
+      return
+    }
+    navigator.serviceWorker.ready.then((reg) =>
+      reg.pushManager.getSubscription().then((sub) => {
+        setPushState(sub ? "subscribed" : "unsubscribed")
+      })
+    )
   }, [])
+
+  const handlePushToggle = async () => {
+    if (pushState === "unsupported" || pushState === "denied" || pushLoading) return
+    setPushLoading(true)
+    try {
+      if (pushState === "subscribed") {
+        await unsubscribeFromPush()
+        setPushState("unsubscribed")
+      } else {
+        const permission = await Notification.requestPermission()
+        if (permission !== "granted") { setPushState("denied"); return }
+        await subscribeToPush()
+        setPushState("subscribed")
+      }
+    } catch (e) {
+      console.error("Push error:", e)
+    } finally {
+      setPushLoading(false)
+    }
+  }
 
   // Return nothing on server - avoids ALL hydration issues
   if (!ready) return null
@@ -68,6 +155,27 @@ export function Sidebar() {
             </h1>
           </div>
           <div className="flex items-center gap-1">
+            {/* Push notification bell */}
+            {pushState !== "unsupported" && (
+              <button
+                onClick={handlePushToggle}
+                disabled={pushLoading || pushState === "denied"}
+                title={
+                  pushState === "subscribed" ? "Desactivar notificaciones"
+                  : pushState === "denied" ? "Notificaciones bloqueadas en el navegador"
+                  : "Activar notificaciones"
+                }
+                className={`p-2.5 rounded-xl transition ${
+                  pushState === "subscribed"
+                    ? "text-[#e84118] bg-[#e84118]/15"
+                    : pushState === "denied"
+                    ? "text-white/20 cursor-not-allowed"
+                    : "text-white/40 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
+              </button>
+            )}
             {role === "ADMIN" && (
               <Link
                 href="/users"
@@ -136,6 +244,27 @@ export function Sidebar() {
         </nav>
 
         <div className="pt-4 border-t border-[#3d2020]">
+          {/* Push notification toggle */}
+          {pushState !== "unsupported" && (
+            <button
+              onClick={handlePushToggle}
+              disabled={pushLoading || pushState === "denied"}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition ${
+                pushState === "subscribed"
+                  ? "text-[#e84118] hover:bg-[#e84118]/10"
+                  : pushState === "denied"
+                  ? "text-white/20 cursor-not-allowed"
+                  : "text-white/60 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
+              {pushState === "subscribed"
+                ? "Notificaciones activas"
+                : pushState === "denied"
+                ? "Notificaciones bloqueadas"
+                : "Activar notificaciones"}
+            </button>
+          )}
           <Link
             href="/booking"
             target="_blank"

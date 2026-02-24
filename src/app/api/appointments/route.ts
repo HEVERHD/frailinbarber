@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppTemplate, buildConfirmationMessage, buildBarberNotification } from "@/lib/twilio"
 import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
+import { sendPushToBarber } from "@/lib/push"
 
 export const dynamic = "force-dynamic"
 
@@ -275,6 +276,14 @@ export async function POST(req: NextRequest) {
       console.error("Error notifying barber:", error)
     }
   }
+
+  // Push notification to the assigned barber
+  sendPushToBarber(appointment.barber.id, {
+    title: "📅 Nueva cita",
+    body: `${user.name || "Cliente"} · ${appointment.service.name} · ${formatDate(appointment.date)} ${formatTime(appointment.date)}`,
+    url: "/appointments",
+    tag: "new-appointment",
+  }).catch(() => {})
 
   return NextResponse.json(appointment, { status: 201 })
 }

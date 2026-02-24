@@ -42,22 +42,35 @@ model VerificationToken {
 }
 
 model User {
-  id                  String          @id @default(cuid())
+  id                  String             @id @default(cuid())
   name                String?
-  email               String?         @unique
+  email               String?            @unique
   emailVerified       DateTime?
   phone               String?
   image               String?
-  role                Role            @default(CLIENT)
+  role                Role               @default(CLIENT)
   avatarUrl           String?
   specialty           String?
   appointments        Appointment[]
-  barberAppointments  Appointment[]   @relation("BarberAppointments")
+  barberAppointments  Appointment[]      @relation("BarberAppointments")
   barberSettings      BarberSettings?
   blockedSlots        BlockedSlot[]
+  pushSubscriptions   PushSubscription[]
   accounts            Account[]
   sessions            Session[]
-  createdAt           DateTime        @default(now())
+  createdAt           DateTime           @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 enum Role {
