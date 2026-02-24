@@ -39,10 +39,10 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-[#1a0a0a]">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a0a0a]/80 backdrop-blur-md border-b border-white/5">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#1a0a0a]/80 backdrop-blur-md border-b border-white/5 animate-fade-in">
         <div className="flex items-center justify-between px-6 py-3 max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Frailin Studio" width={36} height={36} className="rounded-lg" />
+            <Image src="/logo2.png" alt="Frailin Studio" width={36} height={36} className="drop-shadow-lg" />
             <h1 className="text-xl font-bold text-white">
               <span className="text-[#e84118]">Frailin</span> Studio
             </h1>
@@ -67,53 +67,70 @@ export default async function Home() {
       {/* Hero */}
       <header className="relative overflow-hidden pt-16">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a0a] via-[#2d1515] to-[#1a0a0a]" />
-        {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-[#e84118]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#f0932b]/5 rounded-full blur-3xl" />
+
+        {/* Decorative orbs — animados */}
+        <div className="animate-glow-pulse absolute top-20 left-10 w-80 h-80 bg-[#e84118]/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="animate-glow-pulse delay-500 absolute bottom-10 right-10 w-96 h-96 bg-[#f0932b]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="animate-glow-pulse delay-300 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-[#e84118]/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-24 md:py-40">
-          <div className="mb-8 relative">
-            <div className="absolute inset-0 bg-[#e84118]/20 rounded-3xl blur-2xl scale-150" />
-            <Image src="/logo.png" alt="Frailin Studio" width={130} height={130} className="relative rounded-3xl shadow-2xl shadow-[#e84118]/20" />
+
+          {/* Logo flotante */}
+          <div className="animate-scale-in mb-8 relative">
+            <div className="animate-glow-pulse absolute inset-0 bg-[#e84118]/25 rounded-full blur-3xl scale-150 pointer-events-none" />
+            <Image
+              src="/logo2.png"
+              alt="Frailin Studio"
+              width={150}
+              height={150}
+              className="animate-float relative drop-shadow-2xl"
+              style={{ filter: "drop-shadow(0 0 32px rgba(232,65,24,0.4))" }}
+            />
           </div>
-          <span className="text-sm font-medium text-[#e84118] tracking-widest uppercase mb-4">Barberia Premium</span>
-          <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+
+          <span className="animate-fade-up delay-200 text-sm font-medium text-[#e84118] tracking-widest uppercase mb-4">
+            Barberia Premium
+          </span>
+
+          <h2 className="animate-fade-up delay-300 text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
             Tu estilo, tu{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#e84118] to-[#f0932b]">
               fuego
             </span>
           </h2>
-          <p className="text-lg md:text-xl text-white/50 mb-10 max-w-lg">
+
+          <p className="animate-fade-up delay-400 text-lg md:text-xl text-white/50 mb-10 max-w-lg">
             Agenda tu cita en segundos. Sin llamadas, sin esperas. Estilo que arde.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4">
+
+          <div className="animate-fade-up delay-500 flex flex-col sm:flex-row gap-4">
             <Link
               href="/booking"
-              className="bg-gradient-to-r from-[#e84118] to-[#c0392b] text-white font-semibold px-8 py-4 rounded-xl text-lg hover:shadow-lg hover:shadow-[#e84118]/30 transition-all hover:scale-105"
+              className="bg-gradient-to-r from-[#e84118] to-[#c0392b] text-white font-semibold px-8 py-4 rounded-xl text-lg hover:shadow-lg hover:shadow-[#e84118]/40 transition-all hover:scale-105 active:scale-95"
             >
               Agendar Cita
             </Link>
             <a
               href="#servicios"
-              className="border border-white/20 text-white font-medium px-8 py-4 rounded-xl text-lg hover:bg-white/5 transition"
+              className="border border-white/20 text-white font-medium px-8 py-4 rounded-xl text-lg hover:bg-white/5 hover:border-white/30 transition-all"
             >
               Ver Servicios
             </a>
           </div>
 
           {/* Cola en vivo */}
-          <div className="mt-6">
+          <div className="animate-fade-up delay-600 mt-6">
             <LiveQueueBadge />
           </div>
 
           {/* Stats */}
           <div className="flex gap-8 md:gap-16 mt-16">
             {[
-              { value: "5+", label: "Experiencia" },
-              { value: "1K+", label: "Clientes" },
-              { value: "4.9", label: "Calificacion" },
+              { value: "5+", label: "Experiencia", delay: "delay-700" },
+              { value: "1K+", label: "Clientes", delay: "delay-800" },
+              { value: "4.9", label: "Calificacion", delay: "delay-900" },
             ].map((stat) => (
-              <div key={stat.label} className="text-center">
+              <div key={stat.label} className={`animate-count-up ${stat.delay} text-center`}>
                 <p className="text-2xl md:text-3xl font-bold text-[#e84118]">{stat.value}</p>
                 <p className="text-xs text-white/40 mt-1">{stat.label}</p>
               </div>
@@ -137,7 +154,9 @@ export default async function Home() {
           {services.map((service, i) => (
             <div
               key={service.id}
-              className={`relative group p-6 rounded-2xl border transition-all hover:scale-105 hover:shadow-xl ${
+              className={`animate-fade-up relative group p-6 rounded-2xl border transition-all hover:scale-105 hover:shadow-xl ${
+                i === 0 ? "delay-100" : i === 1 ? "delay-200" : "delay-300"
+              } ${
                 i === 1
                   ? "bg-gradient-to-b from-[#e84118]/20 to-[#2d1515] border-[#e84118]/50 shadow-lg shadow-[#e84118]/10"
                   : "bg-[#2d1515] border-[#3d2020] hover:border-[#e84118]/30 hover:shadow-[#e84118]/10"
@@ -264,7 +283,7 @@ export default async function Home() {
               <div className="absolute inset-0 bg-[#e84118]/20 rounded-3xl blur-3xl" />
               <div className="relative bg-[#2d1515] border border-[#3d2020] rounded-3xl p-8 w-80">
                 <div className="text-center mb-6">
-                  <Image src="/logo.png" alt="Frailin Studio" width={80} height={80} className="mx-auto rounded-2xl mb-4" />
+                  <Image src="/logo2.png" alt="Frailin Studio" width={80} height={80} className="mx-auto mb-4 drop-shadow-lg" />
                   <p className="font-bold text-white text-lg">Frailin Studio</p>
                   <p className="text-xs text-white/40">Barberia Premium</p>
                 </div>
@@ -448,7 +467,7 @@ export default async function Home() {
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="Frailin Studio" width={32} height={32} className="rounded-lg" />
+              <Image src="/logo2.png" alt="Frailin Studio" width={32} height={32} className="drop-shadow-md" />
               <span className="font-bold text-white">
                 <span className="text-[#e84118]">Frailin</span> Studio
               </span>
