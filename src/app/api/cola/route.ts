@@ -14,6 +14,10 @@ function maskName(name: string | null): string {
 export async function GET() {
   const today = getColombiaDateStr(new Date())
 
+  // Use the primary barber's settings to filter appointments
+  const barberSettings = await prisma.barberSettings.findFirst()
+  const primaryBarberId = barberSettings?.userId
+
   const appointments = await prisma.appointment.findMany({
     where: {
       date: {
@@ -21,6 +25,7 @@ export async function GET() {
         lt: parseColombia(today + "T23:59:59"),
       },
       status: { in: ["PENDING", "CONFIRMED", "COMPLETED"] },
+      ...(primaryBarberId ? { barberId: primaryBarberId } : {}),
     },
     include: {
       user: { select: { name: true } },
