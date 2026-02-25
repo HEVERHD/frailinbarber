@@ -57,17 +57,18 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Quick search for autocomplete
+  // Quick search for autocomplete (clients only)
   if (search) {
     const results = await prisma.user.findMany({
       where: {
+        role: "CLIENT",
         OR: [
           { name: { contains: search, mode: "insensitive" } },
           { phone: { contains: search } },
         ],
       },
       select: { id: true, name: true, phone: true, email: true },
-      take: 5,
+      take: 6,
     })
     return NextResponse.json(results)
   }

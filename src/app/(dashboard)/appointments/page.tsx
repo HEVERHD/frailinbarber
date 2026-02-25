@@ -208,9 +208,9 @@ export default function AppointmentsPage() {
     })
   }, [now])
 
-  // Search clients as user types
+  // Search clients as user types (trigger at 1 char)
   useEffect(() => {
-    if (newApt.clientName.length >= 2) {
+    if (newApt.clientName.length >= 1) {
       fetch(`/api/clients?search=${encodeURIComponent(newApt.clientName)}`)
         .then((r) => r.json())
         .then((data) => {
@@ -386,19 +386,31 @@ export default function AppointmentsPage() {
                 className="w-full p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40 text-sm"
               />
               {showClientDropdown && (
-                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[#2d1515] border border-[#3d2020] rounded-xl overflow-hidden shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-[#2d1515] border border-[#3d2020] rounded-xl overflow-hidden shadow-xl max-h-56 overflow-y-auto">
                   {clientResults.map((c: any) => (
                     <button
                       key={c.id}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
-                        setNewApt({ ...newApt, clientName: c.name || "", phone: c.phone || "" })
+                        const isBarber = role === "BARBER" || role === "ADMIN"
+                        setNewApt({
+                          ...newApt,
+                          clientName: c.name || "",
+                          phone: isBarber ? (c.phone || "") : newApt.phone,
+                        })
                         setShowClientDropdown(false)
                       }}
-                      className="w-full text-left px-4 py-3 hover:bg-[#3d2020] transition border-b border-[#3d2020] last:border-0"
+                      className="w-full text-left px-4 py-3 hover:bg-[#3d2020] transition border-b border-[#3d2020] last:border-0 flex items-center gap-3"
                     >
-                      <p className="text-sm font-medium text-white">{c.name || "Sin nombre"}</p>
-                      <p className="text-xs text-white/40">{c.phone || c.email || "Sin contacto"}</p>
+                      <div className="w-8 h-8 rounded-full bg-[#e84118]/20 flex items-center justify-center text-[#e84118] font-bold text-sm flex-shrink-0">
+                        {(c.name || "?")[0].toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white truncate">{c.name || "Sin nombre"}</p>
+                        {(role === "BARBER" || role === "ADMIN") && (
+                          <p className="text-xs text-white/40 truncate">{c.phone || c.email || "Sin contacto"}</p>
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>
