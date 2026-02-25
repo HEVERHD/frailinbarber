@@ -73,6 +73,8 @@ export default function BookingPage() {
   const [clientEmail, setClientEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  const [nameSuggestions, setNameSuggestions] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [showWaitlist, setShowWaitlist] = useState(false)
   const [waitlistName, setWaitlistName] = useState("")
   const [waitlistPhone, setWaitlistPhone] = useState("")
@@ -180,6 +182,21 @@ export default function BookingPage() {
       setWaitlistSubmitting(false)
     }
   }
+
+  // ── Client name autocomplete (public, names only) ──────────
+  useEffect(() => {
+    if (clientName.length >= 1) {
+      fetch(`/api/search-client?q=${encodeURIComponent(clientName)}`)
+        .then((r) => r.json())
+        .then((names: string[]) => {
+          setNameSuggestions(names)
+          setShowSuggestions(names.length > 0)
+        })
+    } else {
+      setNameSuggestions([])
+      setShowSuggestions(false)
+    }
+  }, [clientName])
 
   // ── Week navigation ────────────────────────────────────────
   const todayLocal = new Date()
@@ -542,15 +559,37 @@ export default function BookingPage() {
             <div>
               <h2 className="text-xl font-bold mb-4">Tus datos</h2>
               <div className="space-y-4">
-                <div>
+                <div className="relative">
                   <label className="text-sm font-medium text-gray-600">Nombre *</label>
                   <input
                     type="text"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                    onFocus={() => nameSuggestions.length > 0 && setShowSuggestions(true)}
                     placeholder="Tu nombre"
                     className="w-full mt-1 p-3 border-2 border-gray-200 rounded-xl focus:border-[#e84118] focus:outline-none"
                   />
+                  {showSuggestions && (
+                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border-2 border-gray-100 rounded-xl shadow-xl overflow-hidden">
+                      {nameSuggestions.map((name) => (
+                        <button
+                          key={name}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => {
+                            setClientName(name)
+                            setShowSuggestions(false)
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 transition border-b border-gray-100 last:border-0 flex items-center gap-3"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-[#e84118]/10 flex items-center justify-center text-[#e84118] font-bold text-sm flex-shrink-0">
+                            {name[0].toUpperCase()}
+                          </div>
+                          <span className="text-sm font-medium text-gray-800">{name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-600">WhatsApp *</label>
