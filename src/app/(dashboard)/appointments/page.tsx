@@ -99,6 +99,7 @@ export default function AppointmentsPage() {
   const [barbers, setBarbers] = useState<any[]>([])
   const [selectedBarberId, setSelectedBarberId] = useState("")
   const [now, setNow] = useState(new Date())
+  const [actionApt, setActionApt] = useState<Appointment | null>(null)
   const { toast } = useToast()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
@@ -612,11 +613,12 @@ export default function AppointmentsPage() {
                   <div
                     key={apt.id}
                     className="absolute left-1"
-                    style={{ top: top + 1, height: height - 2, right: needsAction ? "28px" : "4px" }}
+                    style={{ top: top + 1, height: height - 2, right: "4px" }}
                   >
-                    {/* Bloque principal */}
+                    {/* Bloque principal — toca para abrir actions */}
                     <div
-                      className={`h-full rounded-xl overflow-hidden border transition-opacity ${
+                      onClick={() => setActionApt(apt)}
+                      className={`h-full rounded-xl overflow-hidden border transition-opacity cursor-pointer active:brightness-125 ${
                         past && apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
                           ? "opacity-50 border-[#3d2020]"
                           : active
@@ -634,7 +636,6 @@ export default function AppointmentsPage() {
 
                       {/* Content */}
                       <div className="relative z-10 flex flex-col h-full p-2 bg-[#1a0a0a]/60">
-                        {/* Top row: name + status badge */}
                         <div className="flex items-start justify-between gap-1">
                           <div className="flex-1 min-w-0">
                             <p className={`font-semibold text-xs leading-tight truncate ${active ? "text-white" : "text-white/80"}`}>
@@ -651,41 +652,8 @@ export default function AppointmentsPage() {
                             {STATUS_MAP[apt.status]?.label}
                           </span>
                         </div>
-
-                        {/* Botones dentro del bloque (citas futuras con espacio) */}
-                        {(apt.status === "PENDING" || apt.status === "CONFIRMED") && height > 60 && !active && !past && (
-                          <div className="mt-auto flex gap-1 pt-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
-                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
-                            >
-                              ✓
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "NO_SHOW") }}
-                              className="text-[9px] px-1.5 py-0.5 rounded-lg bg-[#3d2020] text-white/40 hover:bg-[#4d2c2c] transition"
-                            >
-                              ✗
-                            </button>
-                          </div>
-                        )}
                       </div>
                     </div>
-
-                    {/* Botón lateral flotante: siempre visible para activo o pasado sin completar */}
-                    {needsAction && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); updateStatus(apt.id, "COMPLETED") }}
-                        className={`absolute top-0 -right-7 h-full w-6 rounded-r-xl flex items-center justify-center transition active:scale-95 ${
-                          active
-                            ? "bg-green-600/70 hover:bg-green-500 text-white"
-                            : "bg-green-900/50 hover:bg-green-700/70 text-green-400"
-                        }`}
-                        title="Marcar como completado"
-                      >
-                        <span className="text-[11px] font-bold">✓</span>
-                      </button>
-                    )}
                   </div>
                 )
               })}
@@ -703,6 +671,87 @@ export default function AppointmentsPage() {
           )}
         </div>
       </div>
+
+      {/* ============ ACTION SHEET (mobile tap on appointment) ============ */}
+      {actionApt && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          onClick={() => setActionApt(null)}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+
+          {/* Sheet */}
+          <div
+            className="relative w-full sm:max-w-sm bg-[#1a0a0a] rounded-t-3xl sm:rounded-2xl border border-[#3d2020] overflow-hidden z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Appointment info */}
+            <div className="px-5 py-3 border-b border-[#3d2020]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#e84118]/20 flex items-center justify-center text-[#e84118] font-bold text-base flex-shrink-0">
+                  {(actionApt.user?.name || "?")[0].toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-white truncate">{actionApt.user?.name || "Cliente"}</p>
+                  <p className="text-xs text-white/40">{actionApt.service.name} · {new Date(actionApt.date).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: COL_TZ })}</p>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${STATUS_MAP[actionApt.status]?.color}`}>
+                  {STATUS_MAP[actionApt.status]?.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-3 space-y-2">
+              {actionApt.status === "PENDING" && (
+                <button
+                  onClick={() => { updateStatus(actionApt.id, "CONFIRMED"); setActionApt(null) }}
+                  className="w-full py-3 rounded-xl bg-blue-900/30 text-blue-400 font-medium text-sm hover:bg-blue-900/50 transition active:scale-98"
+                >
+                  ✓ Confirmar cita
+                </button>
+              )}
+              {(actionApt.status === "PENDING" || actionApt.status === "CONFIRMED") && (
+                <>
+                  <button
+                    onClick={() => { updateStatus(actionApt.id, "COMPLETED"); setActionApt(null) }}
+                    className="w-full py-3 rounded-xl bg-green-900/30 text-green-400 font-medium text-sm hover:bg-green-900/50 transition"
+                  >
+                    💈 Marcar como completada
+                  </button>
+                  <button
+                    onClick={() => { updateStatus(actionApt.id, "NO_SHOW"); setActionApt(null) }}
+                    className="w-full py-3 rounded-xl bg-[#2d1515] text-white/40 font-medium text-sm hover:bg-[#3d2020] transition border border-[#3d2020]"
+                  >
+                    No asistió
+                  </button>
+                  <button
+                    onClick={() => { updateStatus(actionApt.id, "CANCELLED"); setActionApt(null) }}
+                    className="w-full py-3 rounded-xl bg-red-900/20 text-red-400 font-medium text-sm hover:bg-red-900/40 transition"
+                  >
+                    ✕ Cancelar cita
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => setActionApt(null)}
+                className="w-full py-3 rounded-xl text-white/30 text-sm hover:text-white/50 transition"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            {/* Safe area bottom */}
+            <div className="h-4" />
+          </div>
+        </div>
+      )}
 
       {/* ============ DESKTOP: Weekly calendar / List ============ */}
       <div className="hidden sm:block">
