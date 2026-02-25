@@ -37,12 +37,17 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
-  // Fetch barbers list (only needed for ADMIN)
+  // Fetch barbers list (only needed for ADMIN) and auto-select first barber
   useEffect(() => {
     if (!isAdmin) return
     fetch("/api/barbers")
       .then((r) => r.json())
-      .then((data: Barber[]) => setBarbers(data))
+      .then((data: Barber[]) => {
+        setBarbers(data)
+        if (data.length > 0 && !selectedBarberId) {
+          setSelectedBarberId(data[0].id)
+        }
+      })
   }, [isAdmin])
 
   // Load settings whenever selectedBarberId changes (or on first load for BARBER)
@@ -134,21 +139,39 @@ export default function SettingsPage() {
       <div className="max-w-2xl space-y-6">
 
         {/* Barber selector — only for ADMIN */}
-        {isAdmin && barbers.length > 1 && (
-          <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020]">
-            <h3 className="font-semibold mb-4 text-white">Editar configuración de</h3>
-            <select
-              value={selectedBarberId}
-              onChange={(e) => setSelectedBarberId(e.target.value)}
-              className="w-full p-3 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white focus:border-[#e84118] focus:outline-none"
-            >
-              <option value="">— Mi configuración —</option>
-              {barbers.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name || b.id}
-                </option>
-              ))}
-            </select>
+        {isAdmin && barbers.length >= 1 && (
+          <div className="bg-[#2d1515] rounded-xl p-5 border border-[#3d2020]">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-semibold text-white/40 uppercase tracking-wider">Viendo config de</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {barbers.map((b) => {
+                const isSelected = selectedBarberId === b.id
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setSelectedBarberId(b.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition border-2 ${
+                      isSelected
+                        ? "bg-[#e84118] border-[#e84118] text-white shadow-lg shadow-[#e84118]/20"
+                        : "bg-[#1a0a0a] border-[#3d2020] text-white/60 hover:border-[#e84118]/50 hover:text-white"
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      isSelected ? "bg-white/20" : "bg-[#3d2020]"
+                    }`}>
+                      {(b.name || "?")[0].toUpperCase()}
+                    </div>
+                    {b.name || "Barbero"}
+                    {isSelected && (
+                      <svg className="w-3.5 h-3.5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
