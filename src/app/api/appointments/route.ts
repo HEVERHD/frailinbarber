@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppTemplate, buildConfirmationMessage, buildBarberNotification, buildStatusConfirmedMessage } from "@/lib/twilio"
 import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
 import { sendPushToBarber } from "@/lib/push"
+import { autoScheduleFromWaitlist } from "@/lib/waitlist"
 
 export const dynamic = "force-dynamic"
 
@@ -346,30 +347,13 @@ export async function PATCH(req: NextRequest) {
     } catch {}
   }
 
-  // When cancelling, notify waitlist entries for that date
+  // When cancelling, auto-schedule the next person in the waitlist
   if (body.status === "CANCELLED") {
-    try {
-      const dateStr = getColombiaDateStr(new Date(appointment.date))
-      const waitlistEntries = await prisma.waitlistEntry.findMany({
-        where: { date: dateStr, status: "WAITING" },
-        include: { service: true },
-      })
-
-      for (const entry of waitlistEntries) {
-        if (entry.phone) {
-          const message = `Hola ${entry.name}, se ha liberado un horario para ${dateStr}. Reserva tu cita ahora en ${process.env.NEXT_PUBLIC_APP_URL || "https://frailinstudio.com"}/booking`
-          sendWhatsAppMessage(entry.phone, message).catch((err) =>
-            console.error("Error notifying waitlist:", err)
-          )
-          await prisma.waitlistEntry.update({
-            where: { id: entry.id },
-            data: { status: "NOTIFIED", notified: true },
-          })
-        }
-      }
-    } catch (error) {
-      console.error("Error notifying waitlist on cancellation:", error)
-    }
+    autoScheduleFromWaitlist(
+      new Date(appointment.date),
+      appointment.barberId,
+      appointment.serviceId
+    ).catch((err) => console.error("Error auto-scheduling from waitlist:", err))
   }
 
   return NextResponse.json(appointment)

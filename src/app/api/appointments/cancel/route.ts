@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppTemplate } from "@/lib/twilio"
 import { formatDate, formatTime } from "@/lib/utils"
 import { sendPushToBarber } from "@/lib/push"
+import { autoScheduleFromWaitlist } from "@/lib/waitlist"
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json()
@@ -75,6 +76,11 @@ export async function POST(req: NextRequest) {
     url: "/appointments",
     tag: "cancelled-appointment",
   }).catch(() => {})
+
+  // Auto-schedule the next person waiting in the waitlist
+  autoScheduleFromWaitlist(appointment.date, appointment.barber.id, appointment.serviceId).catch((err) =>
+    console.error("[Cancel] Error auto-scheduling from waitlist:", err)
+  )
 
   return NextResponse.json({ success: true })
 }
