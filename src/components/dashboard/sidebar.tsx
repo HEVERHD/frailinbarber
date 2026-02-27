@@ -38,6 +38,7 @@ const allMobileNavItems = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard, roles: ["ADMIN", "BARBER"] },
   { href: "/appointments", label: "Citas", Icon: CalendarDays, roles: ["ADMIN", "BARBER"] },
   { href: "/clients", label: "Clientes", Icon: Users, roles: ["ADMIN"] },
+  { href: "/waitlist", label: "Lista espera", Icon: Clock, roles: ["ADMIN"] },
   { href: "/services", label: "Servicios", Icon: Scissors, roles: ["ADMIN"] },
   { href: "/blocked-slots", label: "Bloqueos", Icon: Ban, roles: ["BARBER"] },
 ]
