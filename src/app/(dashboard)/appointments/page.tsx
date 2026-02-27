@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/toast"
 import { to12Hour, hourTo12 } from "@/lib/utils"
 import { Loader } from "@/components/ui/loader"
+import { Camera, X, ImagePlus } from "lucide-react"
 
 type Appointment = {
   id: string
@@ -100,6 +101,11 @@ export default function AppointmentsPage() {
   const [selectedBarberId, setSelectedBarberId] = useState("")
   const [now, setNow] = useState(new Date())
   const [actionApt, setActionApt] = useState<Appointment | null>(null)
+  const [completionApt, setCompletionApt] = useState<Appointment | null>(null)
+  const [uploadPhoto, setUploadPhoto] = useState<string | null>(null)
+  const [uploadTitle, setUploadTitle] = useState("")
+  const [uploadUploading, setUploadUploading] = useState(false)
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
@@ -256,6 +262,44 @@ export default function AppointmentsPage() {
     toast(labels[status] || "Estado actualizado")
     fetchAppointments()
     fetchWeekAppointments()
+  }
+
+  const handlePhotoSelected = (file: File) => {
+    const reader = new FileReader()
+    reader.onload = (e) => setUploadPhoto(e.target?.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const handleCompleteWithPhoto = async () => {
+    if (!completionApt) return
+    setUploadUploading(true)
+    try {
+      if (uploadPhoto) {
+        await fetch("/api/gallery", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            image: uploadPhoto,
+            title: uploadTitle || `${completionApt.service.name} — ${completionApt.user.name || "Cliente"}`,
+            category: "corte",
+          }),
+        })
+      }
+      await updateStatus(completionApt.id, "COMPLETED")
+    } finally {
+      setUploadUploading(false)
+      setCompletionApt(null)
+      setUploadPhoto(null)
+      setUploadTitle("")
+    }
+  }
+
+  const handleCompleteSkip = async () => {
+    if (!completionApt) return
+    await updateStatus(completionApt.id, "COMPLETED")
+    setCompletionApt(null)
+    setUploadPhoto(null)
+    setUploadTitle("")
   }
 
   const createAppointment = async () => {
@@ -732,7 +776,7 @@ export default function AppointmentsPage() {
               {(actionApt.status === "PENDING" || actionApt.status === "CONFIRMED") && (
                 <>
                   <button
-                    onClick={() => { updateStatus(actionApt.id, "COMPLETED"); setActionApt(null) }}
+                    onClick={() => { setActionApt(null); setCompletionApt(actionApt) }}
                     className="w-full py-3 rounded-xl bg-green-900/30 text-green-400 font-medium text-sm hover:bg-green-900/50 transition"
                   >
                     💈 Marcar como completada
@@ -760,6 +804,116 @@ export default function AppointmentsPage() {
             </div>
 
             {/* Safe area bottom */}
+            <div className="h-4" />
+          </div>
+        </div>
+      )}
+
+      {/* ============ PHOTO UPLOAD MODAL (on completion) ============ */}
+      {completionApt && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+          onClick={handleCompleteSkip}
+        >
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div
+            className="relative w-full sm:max-w-sm bg-[#1a0a0a] rounded-t-3xl sm:rounded-2xl border border-[#3d2020] overflow-hidden z-10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/20" />
+            </div>
+
+            {/* Header */}
+            <div className="px-5 pt-2 pb-4 border-b border-[#3d2020]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-white text-base">💈 ¡Listo el corte!</p>
+                  <p className="text-xs text-white/40 mt-0.5">
+                    {completionApt.user.name || "Cliente"} · {completionApt.service.name}
+                  </p>
+                </div>
+                <button onClick={handleCompleteSkip} className="text-white/30 hover:text-white/60 transition">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-sm text-white/60 mt-3">¿Quieres subir una foto del resultado a la galería?</p>
+            </div>
+
+            {/* Photo area */}
+            <div className="p-5 space-y-4">
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handlePhotoSelected(e.target.files[0])}
+              />
+
+              {uploadPhoto ? (
+                <div className="relative">
+                  <img
+                    src={uploadPhoto}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-xl border border-[#3d2020]"
+                  />
+                  <button
+                    onClick={() => setUploadPhoto(null)}
+                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => photoInputRef.current?.click()}
+                  className="w-full h-36 rounded-xl border-2 border-dashed border-[#3d2020] flex flex-col items-center justify-center gap-2 hover:border-[#e84118]/50 hover:bg-[#e84118]/5 transition"
+                >
+                  <Camera size={28} className="text-white/30" />
+                  <span className="text-sm text-white/40">Tomar foto / elegir imagen</span>
+                </button>
+              )}
+
+              {uploadPhoto && (
+                <input
+                  type="text"
+                  placeholder="Título (opcional)"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full p-3 border border-[#3d2020] rounded-xl bg-[#0d0404] text-white placeholder-white/30 text-sm focus:border-[#e84118] focus:outline-none"
+                />
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2">
+                {uploadPhoto && (
+                  <button
+                    onClick={handleCompleteWithPhoto}
+                    disabled={uploadUploading}
+                    className="w-full py-3 rounded-xl bg-[#e84118] text-white font-medium text-sm hover:bg-[#c0392b] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {uploadUploading ? (
+                      <span>Subiendo...</span>
+                    ) : (
+                      <>
+                        <ImagePlus size={16} />
+                        Subir foto y completar
+                      </>
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={handleCompleteSkip}
+                  disabled={uploadUploading}
+                  className="w-full py-3 rounded-xl bg-green-900/30 text-green-400 font-medium text-sm hover:bg-green-900/50 transition disabled:opacity-40"
+                >
+                  {uploadPhoto ? "Solo completar (sin foto)" : "Completar sin foto"}
+                </button>
+              </div>
+            </div>
+
             <div className="h-4" />
           </div>
         </div>
@@ -951,7 +1105,7 @@ export default function AppointmentsPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => updateStatus(apt.id, "COMPLETED")}
+                          onClick={() => setCompletionApt(apt)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-green-900/30 text-green-400 hover:bg-green-900/50 transition"
                         >
                           Completar
