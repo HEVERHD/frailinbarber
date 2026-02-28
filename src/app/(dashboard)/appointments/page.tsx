@@ -79,7 +79,7 @@ export default function AppointmentsPage() {
   const [filter, setFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [showNewForm, setShowNewForm] = useState(false)
-  const [view, setView] = useState<"list" | "week">("week")
+  const [view, setView] = useState<"list" | "week" | "day">("day")
 
   const [services, setServices] = useState<any[]>([])
   const [businessHours, setBusinessHours] = useState({ openTime: "09:00", closeTime: "19:00" })
@@ -388,6 +388,14 @@ export default function AppointmentsPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-white">Citas</h1>
         <div className="flex gap-2">
           <div className="hidden sm:flex bg-[#1a0a0a] rounded-xl p-1 border border-[#3d2020]">
+            <button
+              onClick={() => setView("day")}
+              className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                view === "day" ? "bg-[#e84118] text-white" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Día
+            </button>
             <button
               onClick={() => setView("week")}
               className={`px-3 py-1.5 rounded-lg text-sm transition ${
@@ -921,6 +929,155 @@ export default function AppointmentsPage() {
 
       {/* ============ DESKTOP: Weekly calendar / List ============ */}
       <div className="hidden sm:block">
+        {view === "day" && (
+          <div>
+            {/* Day navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigateDay(-1)}
+                  className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 hover:text-white transition"
+                >
+                  &larr;
+                </button>
+                <button
+                  onClick={goToToday}
+                  className="px-3 py-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-sm text-white/60 hover:text-white transition"
+                >
+                  Hoy
+                </button>
+                <button
+                  onClick={() => navigateDay(1)}
+                  className="p-2 rounded-lg bg-[#1a0a0a] border border-[#3d2020] text-white/60 hover:text-white transition"
+                >
+                  &rarr;
+                </button>
+              </div>
+              <p className="text-sm font-medium text-white">
+                {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-CO", {
+                  weekday: "long", day: "numeric", month: "long", year: "numeric",
+                })}
+              </p>
+            </div>
+
+            {/* Proportional timeline */}
+            <div className="bg-[#2d1515] rounded-xl border border-[#3d2020] overflow-hidden">
+              {dayAppointments.length === 0 && selectedDate !== colombiaDateStr(now) ? (
+                <div className="text-center py-16">
+                  <p className="text-4xl mb-2">📅</p>
+                  <p className="text-white/30 text-sm">Sin citas para este día</p>
+                </div>
+              ) : (
+                <div className="relative ml-16" style={{ height: (TL_END - TL_START) * HOUR_HEIGHT }}>
+                  {/* Hour grid lines + labels */}
+                  {Array.from({ length: TL_END - TL_START + 1 }, (_, i) => i + TL_START).map((hour) => (
+                    <div
+                      key={hour}
+                      className="absolute left-0 right-0 border-t border-[#3d2020]/60"
+                      style={{ top: (hour - TL_START) * HOUR_HEIGHT }}
+                    >
+                      <span className="absolute -left-14 -top-2.5 text-xs text-white/25 w-12 text-right pr-2">
+                        {hourTo12(hour)}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Current time red line */}
+                  {selectedDate === colombiaDateStr(now) && (() => {
+                    const nowH = colombiaHour(now)
+                    const nowM = getColombiaMinute(now)
+                    if (nowH < TL_START || nowH >= TL_END) return null
+                    const y = timeToY(nowH, nowM)
+                    const timeLabel = now.toLocaleTimeString("es-CO", {
+                      hour: "2-digit", minute: "2-digit", hour12: true, timeZone: COL_TZ,
+                    })
+                    return (
+                      <div className="absolute left-0 right-0 z-20 flex items-center" style={{ top: y }}>
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 flex-shrink-0" />
+                        <div className="flex-1 h-px bg-red-500" />
+                        <span className="text-xs text-red-400 px-2 bg-[#2d1515] flex-shrink-0">{timeLabel}</span>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Appointment blocks */}
+                  {dayAppointments.map((apt) => {
+                    const h = colombiaHour(new Date(apt.date))
+                    const m = getColombiaMinute(new Date(apt.date))
+                    const top = timeToY(h, m)
+                    const height = Math.max((apt.service.duration / 60) * HOUR_HEIGHT, 40)
+                    const active = isActive(apt)
+                    const past = isPast(apt)
+                    const progress = active ? getProgress(apt) : 0
+                    const remaining = active ? getRemainingMin(apt) : 0
+
+                    return (
+                      <div
+                        key={apt.id}
+                        className="absolute left-1"
+                        style={{ top: top + 1, height: height - 2, right: "8px" }}
+                      >
+                        <div
+                          onClick={() => setActionApt(apt)}
+                          className={`h-full rounded-xl overflow-hidden border transition cursor-pointer hover:brightness-110 ${
+                            past && apt.status !== "COMPLETED" && apt.status !== "CANCELLED"
+                              ? "opacity-50 border-[#3d2020]"
+                              : active
+                              ? "border-[#e84118] shadow-lg shadow-[#e84118]/20"
+                              : apt.status === "COMPLETED"
+                              ? "border-green-800/50"
+                              : "border-[#3d2020]"
+                          }`}
+                        >
+                          {active && (
+                            <div
+                              className="absolute inset-0 bg-[#e84118]/20 transition-all duration-1000"
+                              style={{ width: `${progress}%` }}
+                            />
+                          )}
+                          <div className="relative z-10 flex items-center h-full px-4 gap-4 bg-[#1a0a0a]/60">
+                            <div className="w-9 h-9 rounded-full bg-[#e84118]/20 flex items-center justify-center text-[#e84118] font-bold text-sm flex-shrink-0">
+                              {(apt.user?.name || "?")[0].toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-semibold text-sm truncate ${active ? "text-white" : "text-white/80"}`}>
+                                {apt.user?.name || "Cliente"}
+                              </p>
+                              <p className="text-xs text-white/40 truncate">{apt.service.name}</p>
+                              {active && (
+                                <p className="text-xs text-[#e84118] font-medium">{remaining} min restantes</p>
+                              )}
+                            </div>
+                            <div className="flex-shrink-0 text-right">
+                              <p className="text-xs text-white/50">
+                                {new Date(apt.date).toLocaleTimeString("es-CO", {
+                                  hour: "2-digit", minute: "2-digit", hour12: true, timeZone: COL_TZ,
+                                })}
+                              </p>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_MAP[apt.status]?.color}`}>
+                                {STATUS_MAP[apt.status]?.label}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {dayAppointments.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center">
+                        <p className="text-4xl mb-1">📅</p>
+                        <p className="text-white/20 text-sm">Sin citas hoy</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {view === "week" && (
           <div>
             {/* Week navigation */}
