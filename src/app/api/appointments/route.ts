@@ -365,8 +365,8 @@ export async function PATCH(req: NextRequest) {
     } catch {}
   }
 
-  // When cancelling, auto-schedule the next person in the waitlist
-  if (body.status === "CANCELLED") {
+  // When cancelling or no-show, auto-schedule the next person in the waitlist
+  if (body.status === "CANCELLED" || body.status === "NO_SHOW") {
     autoScheduleFromWaitlist(
       new Date(appointment.date),
       appointment.barberId,

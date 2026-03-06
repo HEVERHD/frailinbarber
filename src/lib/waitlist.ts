@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { sendWhatsAppMessage } from "@/lib/twilio"
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from "@/lib/twilio"
 import { sendPushToBarber } from "@/lib/push"
 import { formatDate, formatTime, getColombiaDateStr } from "@/lib/utils"
 
@@ -106,4 +106,40 @@ export async function autoScheduleFromWaitlist(
   )
 
   console.log(`[Waitlist] Done — ${entry.name} auto-scheduled and notified`)
+
+  // Notify the next WAITING people in line via WhatsApp template
+  const templateSid = process.env.TWILIO_TEMPLATE_WAITLIST
+  if (templateSid) {
+    const remaining = await prisma.waitlistEntry.findMany({
+      where: { date: dateStr, status: "WAITING" },
+      include: { service: true },
+      orderBy: { createdAt: "asc" },
+      take: 2,
+    })
+
+    if (remaining.length > 0) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
+      const bookingUrl = baseUrl ? `${baseUrl}/booking` : ""
+      const [y, m, d] = dateStr.split("-")
+      const dateLabel = new Date(+y, +m - 1, +d).toLocaleDateString("es-CO", {
+        weekday: "long", day: "numeric", month: "long",
+      })
+
+      for (const next of remaining) {
+        await prisma.waitlistEntry.update({
+          where: { id: next.id },
+          data: { status: "NOTIFIED", notified: true },
+        })
+        sendWhatsAppTemplate(next.phone, templateSid, {
+          "1": next.name,
+          "2": dateLabel,
+          "3": next.service.name,
+          "4": bookingUrl,
+        }).catch((err) =>
+          console.error(`[Waitlist] Error notifying ${next.name}:`, err)
+        )
+        console.log(`[Waitlist] Notified next-in-line: ${next.name}`)
+      }
+    }
+  }
 }

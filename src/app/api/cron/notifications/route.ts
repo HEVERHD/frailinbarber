@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppMessage, sendWhatsAppTemplate, buildReminderMessage } from "@/lib/twilio"
-import { formatTime } from "@/lib/utils"
+import { formatTime, getColombiaDateStr } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -13,6 +13,17 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
+
+  // Auto-expire waitlist entries from past dates
+  const todayStr = getColombiaDateStr(now)
+  const expired = await prisma.waitlistEntry.updateMany({
+    where: { date: { lt: todayStr }, status: { in: ["WAITING", "NOTIFIED"] } },
+    data: { status: "EXPIRED" },
+  })
+  if (expired.count > 0) {
+    console.log(`[Cron] Auto-expired ${expired.count} waitlist entries`)
+  }
+
   const windowStart = new Date(now.getTime() + 40 * 60 * 1000)
   const windowEnd = new Date(now.getTime() + 80 * 60 * 1000)
 
