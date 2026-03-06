@@ -76,6 +76,7 @@ export async function PATCH(req: NextRequest) {
   // Send WhatsApp template when manually notifying a waiting client
   if (status === "NOTIFIED" && entry.phone) {
     const templateSid = process.env.TWILIO_TEMPLATE_WAITLIST
+    console.log(`[Waitlist] templateSid=${templateSid ?? "UNDEFINED"} phone=${entry.phone}`)
     if (templateSid) {
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ""
       const bookingUrl = baseUrl ? `${baseUrl}/booking` : "frailinstudio.com/booking"
