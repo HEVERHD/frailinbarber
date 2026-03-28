@@ -75,7 +75,7 @@ export default function BookingPage() {
   const [clientEmail, setClientEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [nameSuggestions, setNameSuggestions] = useState<string[]>([])
+  const [nameSuggestions, setNameSuggestions] = useState<{ name: string; phone: string }[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showWaitlist, setShowWaitlist] = useState(false)
   const [waitlistName, setWaitlistName] = useState("")
@@ -191,9 +191,9 @@ export default function BookingPage() {
     if (clientName.length >= 1) {
       fetch(`/api/search-client?q=${encodeURIComponent(clientName)}`)
         .then((r) => r.json())
-        .then((names: string[]) => {
-          setNameSuggestions(names)
-          setShowSuggestions(names.length > 0)
+        .then((clients: { name: string; phone: string }[]) => {
+          setNameSuggestions(clients)
+          setShowSuggestions(clients.length > 0)
         })
     } else {
       setNameSuggestions([])
@@ -521,17 +521,20 @@ export default function BookingPage() {
                 />
                 {showSuggestions && (
                   <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-[#1a1a1a] border border-white/12 rounded-xl shadow-2xl overflow-hidden">
-                    {nameSuggestions.map((name) => (
+                    {nameSuggestions.map((s) => (
                       <button
-                        key={name}
+                        key={s.name}
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => { setClientName(name); setShowSuggestions(false) }}
+                        onClick={() => { setClientName(s.name); if (s.phone) setClientPhone(s.phone); setShowSuggestions(false) }}
                         className="w-full text-left px-4 py-3 hover:bg-white/5 transition border-b border-white/5 last:border-0 flex items-center gap-3"
                       >
                         <div className="w-7 h-7 rounded-full bg-[#e84118]/15 flex items-center justify-center text-[#e84118] font-bold text-xs flex-shrink-0">
-                          {name[0].toUpperCase()}
+                          {s.name[0].toUpperCase()}
                         </div>
-                        <span className="text-sm text-white/70">{name}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-white/70">{s.name}</p>
+                          {s.phone && <p className="text-xs text-white/30">{s.phone}</p>}
+                        </div>
                       </button>
                     ))}
                   </div>

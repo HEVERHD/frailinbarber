@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
-// Public endpoint — returns only names (no phone, no email) for booking autocomplete
+// Public endpoint — returns name + phone for booking autocomplete
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const search = searchParams.get("q") || ""
@@ -17,9 +17,9 @@ export async function GET(req: NextRequest) {
       role: "CLIENT",
       name: { contains: search, mode: "insensitive" },
     },
-    select: { name: true },
+    select: { name: true, phone: true },
     take: 6,
   })
 
-  return NextResponse.json(results.map((r) => r.name).filter(Boolean))
+  return NextResponse.json(results.filter((r) => r.name).map((r) => ({ name: r.name!, phone: r.phone ?? "" })))
 }
