@@ -246,7 +246,7 @@ export async function POST(req: NextRequest) {
       notes: body.notes || null,
       status: "CONFIRMED",
     },
-    include: { service: true, user: true, barber: { select: { id: true, name: true, phone: true } } },
+    include: { service: true, user: true, barber: { select: { id: true, name: true, phone: true, barberSettings: { select: { phone: true } } } } },
   })
 
   // Auto-mark waitlist entry as BOOKED if client was on the waitlist for this date
@@ -305,10 +305,11 @@ export async function POST(req: NextRequest) {
   }
 
   // Notify only the assigned barber (not all barbers)
-  if (appointment.barber.phone) {
+  const barberPhone = appointment.barber.barberSettings?.phone || appointment.barber.phone
+  if (barberPhone) {
     try {
       if (barberTemplateSid) {
-        sendWhatsAppTemplate(appointment.barber.phone, barberTemplateSid, {
+        sendWhatsAppTemplate(barberPhone, barberTemplateSid, {
           "1": user.name || "Cliente",
           "2": appointment.service.name,
           "3": formatDate(appointment.date),
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
           formatCurrency(appointment.service.price),
           body.bookedBy || "CLIENT"
         )
-        sendWhatsAppMessage(appointment.barber.phone, barberMsg).catch((err) =>
+        sendWhatsAppMessage(barberPhone, barberMsg).catch((err) =>
           console.error("Error notifying barber:", err)
         )
       }
