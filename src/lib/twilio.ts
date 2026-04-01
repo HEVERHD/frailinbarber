@@ -100,19 +100,21 @@ export async function sendSMS(to: string, message: string) {
   }
 }
 
-/** Try WhatsApp template first; if it fails, send SMS as fallback */
+/** Try WhatsApp template; also always send SMS while WhatsApp has delivery issues */
 export async function sendWhatsAppTemplateWithSMSFallback(
   to: string,
   contentSid: string,
   variables: Record<string, string>,
   smsFallbackBody: string
 ): Promise<void> {
-  try {
-    await sendWhatsAppTemplate(to, contentSid, variables)
-  } catch {
-    console.log(`[WhatsApp→SMS] WhatsApp failed for ${to}, sending SMS fallback`)
-    await sendSMS(to, smsFallbackBody)
-  }
+  // Fire WhatsApp (don't await — 63005 failures are async, won't throw here)
+  sendWhatsAppTemplate(to, contentSid, variables).catch((err) => {
+    console.log(`[WhatsApp Failed] ${err.message} for ${to}`)
+  })
+  // Always send SMS as guaranteed delivery while WhatsApp is broken
+  await sendSMS(to, smsFallbackBody).catch((err) => {
+    console.error(`[SMS Error] ${err.message} for ${to}`)
+  })
 }
 
 export function buildConfirmationMessage(
