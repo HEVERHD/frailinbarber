@@ -54,7 +54,7 @@ async function main() {
   for (const service of services) {
     await prisma.service.upsert({
       where: { id: service.id },
-      update: {},
+      update: { price: service.price, name: service.name, description: service.description, duration: service.duration },
       create: service,
     })
   }
