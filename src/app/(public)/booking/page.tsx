@@ -237,7 +237,7 @@ export default function BookingPage() {
   }
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(price)
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(price)
 
   const progressSteps: Step[] = ["barber", "service", "datetime", "info"]
   const visibleProgressSteps = barbers.length <= 1 ? progressSteps.filter((s) => s !== "barber") : progressSteps

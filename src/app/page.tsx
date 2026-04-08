@@ -38,9 +38,9 @@ async function getGallery() {
 }
 
 const formatPrice = (price: number) =>
-  new Intl.NumberFormat("es-CO", {
+  new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "COP",
+    currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price)

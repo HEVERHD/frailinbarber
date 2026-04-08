@@ -23,32 +23,32 @@ async function main() {
     console.log("Admin creado:", admin.email)
   }
 
-  // Usar el primero como barbero principal para los settings
-  const barber = await prisma.user.findUnique({ where: { email: ADMINS[0].email } })
-  if (!barber) throw new Error("No se pudo crear el barbero principal")
+  // 2. Configuración de barberSettings para ambos admins
+  for (const admin of ADMINS) {
+    const user = await prisma.user.findUnique({ where: { email: admin.email } })
+    if (!user) continue
+    await prisma.barberSettings.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: {
+        shopName: "StyleCut Barbería",
+        openTime: "09:00",
+        closeTime: "19:00",
+        slotDuration: 30,
+        daysOff: "0",
+        userId: user.id,
+      },
+    })
+    console.log("Configuración creada para:", admin.email)
+  }
 
-  // 2. Configuración de la barbería demo
-  await prisma.barberSettings.upsert({
-    where: { userId: barber.id },
-    update: {},
-    create: {
-      shopName: "StyleCut Barbería",
-      openTime: "09:00",
-      closeTime: "19:00",
-      slotDuration: 30,
-      daysOff: "0",
-      userId: barber.id,
-    },
-  })
-  console.log("Configuración creada: StyleCut Barbería")
-
-  // 3. Servicios
+  // 3. Servicios (precios en USD)
   const services = [
-    { id: "corte-clasico",       name: "Corte Clásico",       description: "Corte de cabello tradicional con tijera y máquina", price: 15000, duration: 30 },
-    { id: "corte-degradado",     name: "Corte Degradado",     description: "Fade y degradado profesional con máquina",           price: 18000, duration: 40 },
-    { id: "corte-barba",         name: "Corte + Barba",       description: "Corte de cabello más arreglo y perfilado de barba",  price: 25000, duration: 50 },
-    { id: "arreglo-barba",       name: "Arreglo de Barba",    description: "Perfilado y arreglo profesional de barba",           price: 10000, duration: 20 },
-    { id: "tratamiento-capilar", name: "Tratamiento Capilar", description: "Lavado, masaje capilar y tratamiento hidratante",    price: 20000, duration: 35 },
+    { id: "corte-clasico",       name: "Corte Clásico",       description: "Corte de cabello tradicional con tijera y máquina", price: 15, duration: 30 },
+    { id: "corte-degradado",     name: "Corte Degradado",     description: "Fade y degradado profesional con máquina",           price: 18, duration: 40 },
+    { id: "corte-barba",         name: "Corte + Barba",       description: "Corte de cabello más arreglo y perfilado de barba",  price: 25, duration: 50 },
+    { id: "arreglo-barba",       name: "Arreglo de Barba",    description: "Perfilado y arreglo profesional de barba",           price: 10, duration: 20 },
+    { id: "tratamiento-capilar", name: "Tratamiento Capilar", description: "Lavado, masaje capilar y tratamiento hidratante",    price: 20, duration: 35 },
   ]
 
   for (const service of services) {

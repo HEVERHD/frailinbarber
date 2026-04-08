@@ -81,7 +81,7 @@ export default function ServicesPage() {
   }
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price)
 
   return (
     <div>
@@ -118,7 +118,7 @@ export default function ServicesPage() {
             />
             <input
               type="number"
-              placeholder="Precio (COP)"
+              placeholder="Precio (USD)"
               value={form.price}
               onChange={(e) => setForm({ ...form, price: e.target.value })}
               className="p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"

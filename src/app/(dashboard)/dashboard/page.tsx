@@ -55,7 +55,7 @@ type Stats = {
 const PIE_COLORS = ["#e84118", "#f0932b", "#e55039", "#c0392b", "#a93226"]
 
 const fmt = (v: number) =>
-  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(v)
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(v)
 
 const fmtShort = (v: number) =>
   v >= 1_000_000
@@ -249,7 +249,7 @@ export default function DashboardPage() {
               <p className="font-bold text-white">Ingresos</p>
               <p className="text-xs text-white/30 mt-0.5">Últimos 6 meses</p>
             </div>
-            <span className="text-xs text-white/20 bg-white/5 px-3 py-1.5 rounded-lg">COP</span>
+            <span className="text-xs text-white/20 bg-white/5 px-3 py-1.5 rounded-lg">USD</span>
           </div>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={stats.monthlyRevenue}>
