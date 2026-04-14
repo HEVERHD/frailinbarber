@@ -111,6 +111,11 @@ export async function GET(req: NextRequest) {
         return slotStart < blockEnd && slotEnd > blockStart
       }) ||
       recurringBlocks.some((r) => {
+        // Check day-of-week filter (empty = all days)
+        if (r.daysOfWeek) {
+          const days = r.daysOfWeek.split(",").map(Number)
+          if (!days.includes(dayOfWeek)) return false
+        }
         if (r.allDay) return true
         const blockStart = toMin(r.startTime)
         const blockEnd = toMin(r.endTime)

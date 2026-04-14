@@ -162,14 +162,15 @@ model BlockedSlot {
 }
 
 model RecurringBlock {
-  id        String   @id @default(cuid())
-  startTime String               // HH:mm — applies every day
-  endTime   String               // HH:mm
-  reason    String?
-  allDay    Boolean  @default(false)
-  barberId  String
-  barber    User     @relation(fields: [barberId], references: [id])
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  startTime  String               // HH:mm
+  endTime    String               // HH:mm
+  reason     String?
+  allDay     Boolean  @default(false)
+  daysOfWeek String   @default("") // comma-separated JS day numbers (0=Sun…6=Sat), empty = all days
+  barberId   String
+  barber     User     @relation(fields: [barberId], references: [id])
+  createdAt  DateTime @default(now())
 
   @@index([barberId])
 }

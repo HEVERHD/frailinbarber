@@ -21,6 +21,27 @@ type RecurringBlock = {
   endTime: string
   reason: string | null
   allDay: boolean
+  daysOfWeek: string
+}
+
+const DAYS = [
+  { label: "D", fullLabel: "Dom", value: 0 },
+  { label: "L", fullLabel: "Lun", value: 1 },
+  { label: "M", fullLabel: "Mar", value: 2 },
+  { label: "X", fullLabel: "Mié", value: 3 },
+  { label: "J", fullLabel: "Jue", value: 4 },
+  { label: "V", fullLabel: "Vie", value: 5 },
+  { label: "S", fullLabel: "Sáb", value: 6 },
+]
+
+function formatDaysOfWeek(daysOfWeek: string): string {
+  if (!daysOfWeek) return "Todos los días"
+  const days = daysOfWeek.split(",").map(Number)
+  if (days.length === 7) return "Todos los días"
+  if (days.length === 5 && days.includes(1) && days.includes(2) && days.includes(3) && days.includes(4) && days.includes(5) && !days.includes(0) && !days.includes(6)) {
+    return "Lun – Vie"
+  }
+  return days.map((d) => DAYS.find((x) => x.value === d)?.fullLabel ?? "").join(", ")
 }
 
 const QUICK_PRESETS = [
@@ -36,7 +57,7 @@ export default function BlockedSlotsPage() {
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [quickDate, setQuickDate] = useState(new Date().toISOString().split("T")[0])
   const [quickLoading, setQuickLoading] = useState<string | null>(null)
-  const [recurringForm, setRecurringForm] = useState({ startTime: "11:58", endTime: "13:00", reason: "" })
+  const [recurringForm, setRecurringForm] = useState({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5] })
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     startTime: "09:00",
@@ -101,16 +122,27 @@ export default function BlockedSlotsPage() {
     fetchAll()
   }
 
-  const createRecurring = async (preset?: { startTime: string; endTime: string; reason: string }) => {
-    const data = preset ?? { ...recurringForm, allDay: false }
+  const createRecurring = async (preset?: { startTime: string; endTime: string; reason: string; daysOfWeek?: string }) => {
+    const data = preset
+      ? { ...preset, allDay: false }
+      : { ...recurringForm, allDay: false, daysOfWeek: recurringForm.daysOfWeek.join(",") }
     await fetch("/api/recurring-blocks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    setRecurringForm({ startTime: "11:58", endTime: "13:00", reason: "" })
+    setRecurringForm({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5] })
     setShowRecurringForm(false)
     fetchAll()
+  }
+
+  const toggleDay = (day: number) => {
+    setRecurringForm((prev) => ({
+      ...prev,
+      daysOfWeek: prev.daysOfWeek.includes(day)
+        ? prev.daysOfWeek.filter((d) => d !== day)
+        : [...prev.daysOfWeek, day].sort((a, b) => a - b),
+    }))
   }
 
   const deleteRecurring = async (id: string) => {
@@ -151,7 +183,7 @@ export default function BlockedSlotsPage() {
           <div className="flex items-center gap-2">
             <RepeatIcon size={16} className="text-[#e84118]" />
             <p className="text-sm font-bold text-white">Bloqueos fijos</p>
-            <span className="text-xs text-white/30 ml-1">· aplican todos los días</span>
+            <span className="text-xs text-white/30 ml-1">· se repiten semanalmente</span>
           </div>
           <button
             onClick={() => setShowRecurringForm(!showRecurringForm)}
@@ -164,10 +196,10 @@ export default function BlockedSlotsPage() {
         {/* Recurring quick add */}
         {showRecurringForm && (
           <div className="px-5 py-4 border-b border-[#3d2020] bg-[#1a0a0a]">
-            <p className="text-xs text-white/40 mb-3">Agrega un bloqueo que se repita cada día automáticamente</p>
+            <p className="text-xs text-white/40 mb-3">Agrega un bloqueo que se repita semanalmente en los días seleccionados</p>
             {/* Almuerzo shortcut */}
             <button
-              onClick={() => createRecurring({ startTime: "11:58", endTime: "13:00", reason: "Almuerzo" })}
+              onClick={() => createRecurring({ startTime: "11:58", endTime: "13:00", reason: "Almuerzo", daysOfWeek: "" })}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2d1515] border border-[#e84118]/30 hover:bg-[#e84118]/10 transition text-sm text-white mb-3 w-full"
             >
               <span>🍽</span>
@@ -198,15 +230,40 @@ export default function BlockedSlotsPage() {
                 <label className="text-xs text-white/50 mb-1 block">Razón (opcional)</label>
                 <input
                   type="text"
-                  placeholder="Ej: Almuerzo"
+                  placeholder="Ej: Buscar al bebé"
                   value={recurringForm.reason}
                   onChange={(e) => setRecurringForm({ ...recurringForm, reason: e.target.value })}
                   className="w-full p-2.5 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#2d1515] text-white text-sm placeholder-white/30"
                 />
               </div>
+            </div>
+            <div className="mt-3">
+              <label className="text-xs text-white/50 mb-2 block">Días que aplica</label>
+              <div className="flex gap-1.5">
+                {DAYS.map((day) => {
+                  const active = recurringForm.daysOfWeek.includes(day.value)
+                  return (
+                    <button
+                      key={day.value}
+                      type="button"
+                      onClick={() => toggleDay(day.value)}
+                      className={`w-9 h-9 rounded-lg text-xs font-bold transition ${
+                        active
+                          ? "bg-[#e84118] text-white"
+                          : "bg-[#2d1515] border border-[#3d2020] text-white/40 hover:border-[#e84118]/50 hover:text-white/70"
+                      }`}
+                    >
+                      {day.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="mt-3">
               <button
                 onClick={() => createRecurring()}
-                className="px-4 py-2.5 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition"
+                disabled={recurringForm.daysOfWeek.length === 0}
+                className="px-4 py-2.5 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition disabled:opacity-40"
               >
                 Guardar
               </button>
@@ -234,7 +291,7 @@ export default function BlockedSlotsPage() {
                       {r.allDay ? "Todo el día" : `${to12Hour(r.startTime)} – ${to12Hour(r.endTime)}`}
                       {r.reason && <span className="text-white/40 font-normal"> · {r.reason}</span>}
                     </p>
-                    <p className="text-xs text-[#e84118]/70">Todos los días</p>
+                    <p className="text-xs text-[#e84118]/70">{formatDaysOfWeek(r.daysOfWeek)}</p>
                   </div>
                 </div>
                 <button

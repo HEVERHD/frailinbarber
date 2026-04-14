@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       endTime: body.endTime,
       reason: body.reason || null,
       allDay: body.allDay ?? false,
+      daysOfWeek: body.daysOfWeek ?? "",
       barberId: userId,
     },
   })
