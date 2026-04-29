@@ -116,19 +116,29 @@ export default function BookingPage() {
     const ios = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())
     setIsIos(ios)
 
-    const timer = setTimeout(() => setShowPwaModal(true), 4000)
-
-    const handler = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      clearTimeout(timer)
-      setShowPwaModal(true)
-    }
-    window.addEventListener("beforeinstallprompt", handler)
-
-    return () => {
-      clearTimeout(timer)
-      window.removeEventListener("beforeinstallprompt", handler)
+    if (ios) {
+      // iOS Safari: no hay beforeinstallprompt, mostrar tutorial después de un delay
+      const timer = setTimeout(() => setShowPwaModal(true), 4000)
+      return () => clearTimeout(timer)
+    } else {
+      // Android / Desktop Chrome-Edge: esperar el evento nativo
+      const handler = (e: Event) => {
+        e.preventDefault()
+        setDeferredPrompt(e)
+        setShowPwaModal(true)
+      }
+      window.addEventListener("beforeinstallprompt", handler)
+      // Ocultar el modal si el usuario ya instaló la app
+      const onInstalled = () => {
+        setShowPwaModal(false)
+        setDeferredPrompt(null)
+        localStorage.setItem("pwa_dismissed", Date.now().toString())
+      }
+      window.addEventListener("appinstalled", onInstalled)
+      return () => {
+        window.removeEventListener("beforeinstallprompt", handler)
+        window.removeEventListener("appinstalled", onInstalled)
+      }
     }
   }, [])
 
@@ -358,27 +368,28 @@ export default function BookingPage() {
             </div>
 
             {isIos ? (
-              <div className="bg-white/5 rounded-xl p-4 mb-4 space-y-2">
-                <p className="text-xs text-white/60 font-medium mb-3">Sigue estos pasos en Safari:</p>
-                <div className="flex items-center gap-2.5 text-xs text-white/50">
-                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">1</span>
-                  Toca el botón <span className="font-bold text-white/70 mx-1">Compartir</span> en la barra de Safari
+              <div className="bg-white/5 rounded-xl p-4 mb-4 space-y-2.5">
+                <p className="text-xs text-white/50 font-medium mb-3">Sigue estos pasos en Safari:</p>
+                <div className="flex items-center gap-3 text-xs text-white/50">
+                  <span className="w-6 h-6 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0 text-[11px]">1</span>
+                  <span>Toca el botón <span className="font-bold text-white/70">Compartir</span> <span className="text-white/30">(cuadro con flecha ↑)</span></span>
                 </div>
-                <div className="flex items-center gap-2.5 text-xs text-white/50">
-                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">2</span>
-                  Selecciona <span className="font-bold text-white/70 mx-1">"Añadir a pantalla de inicio"</span>
+                <div className="flex items-center gap-3 text-xs text-white/50">
+                  <span className="w-6 h-6 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0 text-[11px]">2</span>
+                  <span>Selecciona <span className="font-bold text-white/70">"Añadir a pantalla de inicio"</span></span>
                 </div>
-                <div className="flex items-center gap-2.5 text-xs text-white/50">
-                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">3</span>
-                  Pulsa <span className="font-bold text-white/70 mx-1">Añadir</span> y listo
+                <div className="flex items-center gap-3 text-xs text-white/50">
+                  <span className="w-6 h-6 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0 text-[11px]">3</span>
+                  <span>Pulsa <span className="font-bold text-white/70">Añadir</span> en la esquina superior derecha</span>
                 </div>
               </div>
             ) : (
               <button
                 onClick={handlePwaInstall}
-                className="w-full py-3 rounded-xl bg-[#d97706] text-white font-semibold text-sm hover:bg-[#c0392b] transition mb-3"
+                className="w-full py-3.5 rounded-xl bg-[#d97706] text-white font-bold text-sm hover:bg-[#b45309] active:scale-95 transition-all mb-3 flex items-center justify-center gap-2"
               >
-                Instalar app
+                <Smartphone size={16} />
+                Instalar app gratis
               </button>
             )}
 
