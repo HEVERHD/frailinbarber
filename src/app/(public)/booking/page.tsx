@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, Clock, Scissors, ChevronLeft, ChevronRight } from "lucide-react"
+import { ArrowLeft, Clock, Scissors, ChevronLeft, ChevronRight, Smartphone, X } from "lucide-react"
 
 type Barber = {
   id: string
@@ -83,6 +83,54 @@ export default function BookingPage() {
   const [waitlistDone, setWaitlistDone] = useState(false)
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()))
   const [shopName, setShopName] = useState("Mi Barbería")
+  const [hasSavedClient, setHasSavedClient] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [showPwaModal, setShowPwaModal] = useState(false)
+  const [isIos, setIsIos] = useState(false)
+  const [weekAvailability, setWeekAvailability] = useState<Record<string, "available" | "partial" | "full" | "off">>({})
+  const [loadingAvailability, setLoadingAvailability] = useState(false)
+
+  // ── Saved client info (localStorage) ──────────────────────
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("barber_client")
+      if (saved) {
+        const { name, phone, email } = JSON.parse(saved)
+        if (name) { setClientName(name); setHasSavedClient(true) }
+        if (phone) setClientPhone(phone)
+        if (email) setClientEmail(email)
+      }
+    } catch {}
+  }, [])
+
+  // ── PWA install prompt ─────────────────────────────────────
+  useEffect(() => {
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone
+    if (standalone) return
+
+    const dismissed = localStorage.getItem("pwa_dismissed")
+    if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 60 * 60 * 1000) return
+
+    const ios = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())
+    setIsIos(ios)
+
+    const timer = setTimeout(() => setShowPwaModal(true), 4000)
+
+    const handler = (e: Event) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      clearTimeout(timer)
+      setShowPwaModal(true)
+    }
+    window.addEventListener("beforeinstallprompt", handler)
+
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener("beforeinstallprompt", handler)
+    }
+  }, [])
 
   // ── Data fetching ──────────────────────────────────────────
   useEffect(() => {
@@ -120,6 +168,20 @@ export default function BookingPage() {
       setSelectedDate(toLocalDateStr(today))
     }
   }, [step, selectedDate])
+
+  // Fetch week availability whenever week or service/barber changes
+  useEffect(() => {
+    if (step !== "datetime" || !selectedService || !selectedBarber) return
+    const days = getWeekDays(weekStart)
+    const startDate = toLocalDateStr(days[0])
+    const endDate = toLocalDateStr(days[6])
+    setLoadingAvailability(true)
+    fetch(`/api/appointments/week-availability?startDate=${startDate}&endDate=${endDate}&serviceId=${selectedService.id}&barberId=${selectedBarber.id}`)
+      .then((r) => r.json())
+      .then((data) => setWeekAvailability((prev) => ({ ...prev, ...data })))
+      .catch(() => {})
+      .finally(() => setLoadingAvailability(false))
+  }, [step, weekStart, selectedService?.id, selectedBarber?.id])
 
   useEffect(() => {
     if (selectedDate && selectedService && selectedBarber) {
@@ -164,6 +226,7 @@ export default function BookingPage() {
         name: clientName,
         barber: selectedBarber.name || "",
       })
+      localStorage.setItem("barber_client", JSON.stringify({ name: clientName, phone: clientPhone, email: clientEmail }))
       router.push(`/booking/confirm?${params.toString()}`)
     } else {
       const data = await res.json()
@@ -236,6 +299,29 @@ export default function BookingPage() {
     setWeekStart(next)
   }
 
+  const clearSavedClient = () => {
+    localStorage.removeItem("barber_client")
+    setHasSavedClient(false)
+    setClientName("")
+    setClientPhone("")
+    setClientEmail("")
+  }
+
+  const handlePwaInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      await deferredPrompt.userChoice
+      setDeferredPrompt(null)
+    }
+    setShowPwaModal(false)
+    localStorage.setItem("pwa_dismissed", Date.now().toString())
+  }
+
+  const dismissPwa = () => {
+    setShowPwaModal(false)
+    localStorage.setItem("pwa_dismissed", Date.now().toString())
+  }
+
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(price)
 
@@ -252,6 +338,56 @@ export default function BookingPage() {
   // ── Render ─────────────────────────────────────────────────
   return (
     <div className="min-h-screen text-white">
+      {/* PWA install modal */}
+      {showPwaModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#111] border border-white/10 rounded-2xl p-6 shadow-2xl mb-4 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-[#d97706]/15 rounded-xl flex items-center justify-center">
+                  <Smartphone size={22} className="text-[#d97706]" />
+                </div>
+                <div>
+                  <p className="font-bold text-white text-sm">Instala la app</p>
+                  <p className="text-xs text-white/40">Agenda más rápido la próxima vez</p>
+                </div>
+              </div>
+              <button onClick={dismissPwa} className="p-1.5 text-white/30 hover:text-white transition">
+                <X size={16} />
+              </button>
+            </div>
+
+            {isIos ? (
+              <div className="bg-white/5 rounded-xl p-4 mb-4 space-y-2">
+                <p className="text-xs text-white/60 font-medium mb-3">Sigue estos pasos en Safari:</p>
+                <div className="flex items-center gap-2.5 text-xs text-white/50">
+                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">1</span>
+                  Toca el botón <span className="font-bold text-white/70 mx-1">Compartir</span> en la barra de Safari
+                </div>
+                <div className="flex items-center gap-2.5 text-xs text-white/50">
+                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">2</span>
+                  Selecciona <span className="font-bold text-white/70 mx-1">"Añadir a pantalla de inicio"</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-xs text-white/50">
+                  <span className="w-5 h-5 bg-[#d97706]/20 rounded-full flex items-center justify-center text-[#d97706] font-bold flex-shrink-0">3</span>
+                  Pulsa <span className="font-bold text-white/70 mx-1">Añadir</span> y listo
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handlePwaInstall}
+                className="w-full py-3 rounded-xl bg-[#d97706] text-white font-semibold text-sm hover:bg-[#c0392b] transition mb-3"
+              >
+                Instalar app
+              </button>
+            )}
+
+            <button onClick={dismissPwa} className="w-full py-2.5 rounded-xl text-xs text-white/30 hover:text-white/50 transition">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      )}
       {/* Barbershop background */}
       <div className="fixed inset-0 z-0">
         <Image src="/barberia.jpg" alt="" fill className="object-cover blur-sm scale-105" style={{ opacity: 0.45 }} priority />
@@ -395,30 +531,57 @@ export default function BookingPage() {
             </div>
 
             {/* Week strip */}
-            <div className="grid grid-cols-7 gap-1.5 mb-6">
+            <div className="grid grid-cols-7 gap-1.5 mb-3">
               {weekDays.map((day, i) => {
                 const dateStr = toLocalDateStr(day)
                 const isPast = day.getTime() < todayLocal.getTime()
                 const isToday = dateStr === todayStr
                 const isSelected = dateStr === selectedDate
+                const avail = weekAvailability[dateStr]
+                const isOff = avail === "off"
+                const isDisabled = isPast || isOff
                 return (
-                  <div key={i} className="flex flex-col items-center gap-1.5">
+                  <div key={i} className="flex flex-col items-center gap-1">
                     <span className="text-[10px] font-medium text-white/25 uppercase">{DAY_LABELS[i]}</span>
                     <button
                       onClick={() => handleDateSelect(day)}
-                      disabled={isPast}
+                      disabled={isDisabled}
                       className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition select-none
-                        ${isSelected ? "bg-[#d97706] text-white shadow-lg shadow-[#d97706]/30"
-                          : isToday ? "bg-white/8 text-white ring-1 ring-white/20"
-                          : isPast ? "text-white/15 cursor-not-allowed"
+                        ${isSelected
+                          ? "bg-[#d97706] text-white shadow-lg shadow-[#d97706]/30"
+                          : isDisabled
+                          ? "text-white/15 cursor-not-allowed"
+                          : isToday
+                          ? "bg-white/8 text-white ring-1 ring-white/20"
                           : "text-white/60 hover:bg-white/8 hover:text-white"
                         }`}
                     >
                       {day.getDate()}
                     </button>
+                    {/* Availability dot */}
+                    <div className="h-1.5 flex items-center justify-center">
+                      {!isPast && (
+                        loadingAvailability ? (
+                          <span className="w-1 h-1 rounded-full bg-white/10 animate-pulse" />
+                        ) : avail === "available" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        ) : avail === "partial" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                        ) : avail === "full" ? (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                        ) : null
+                      )}
+                    </div>
                   </div>
                 )
               })}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-end gap-3 mb-5 text-[10px] text-white/30">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Disponible</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Pocas horas</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-white/20 inline-block" /> Completo</span>
             </div>
 
             {/* Divider */}
@@ -514,6 +677,14 @@ export default function BookingPage() {
               </p>
               <h2 className="text-2xl font-black">Tus datos</h2>
             </div>
+            {hasSavedClient && (
+              <div className="flex items-center justify-between bg-[#d97706]/10 border border-[#d97706]/20 rounded-xl px-4 py-3 mb-5">
+                <p className="text-xs text-[#d97706]">Recordamos tus datos</p>
+                <button onClick={clearSavedClient} className="text-xs text-white/30 hover:text-white/60 transition underline underline-offset-2">
+                  No soy yo
+                </button>
+              </div>
+            )}
             <div className="space-y-4">
               <div className="relative">
                 <label className="text-xs font-semibold text-white/40 uppercase tracking-wider block mb-2">Nombre *</label>
