@@ -26,7 +26,11 @@ async function getServices() {
 }
 
 async function getSettings() {
-  return prisma.barberSettings.findFirst()
+  // Prefer the ADMIN's settings for the public home page (shop name, city, address, phone)
+  return (
+    await prisma.barberSettings.findFirst({ where: { user: { role: "ADMIN" } } }) ??
+    await prisma.barberSettings.findFirst()
+  )
 }
 
 async function getGallery() {

@@ -347,7 +347,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber√
             <div className="order-2 lg:order-1 text-center lg:text-left">
 
               {/* Location badge */}
-              <div className="fs-badge inline-flex items-center gap-2.5 border border-[#d97706]/25 bg-[#d97706]/8 text-[#d97706] text-[11px] font-bold px-4 py-2 rounded-full mb-6 lg:mb-8 tracking-[0.2em] uppercase">
+              <div className="fs-badge inline-flex items-center gap-2.5 border border-[#d97706]/25 bg-[#d97706]/8 text-[#d97706] text-[11px] font-bold px-4 py-2 rounded-full mb-6 lg:mb-8 tracking-[0.2em]">
                 <span className="fs-dot inline-block w-1.5 h-1.5 rounded-full bg-[#d97706]" />
                 {city || "Tu ciudad"}
               </div>
