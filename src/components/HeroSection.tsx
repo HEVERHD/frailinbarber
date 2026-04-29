@@ -16,9 +16,10 @@ const PHRASES = [
 interface HeroSectionProps {
   galleryImages?: string[]
   shopName?: string
+  city?: string
 }
 
-export default function HeroSection({ galleryImages = [], shopName = "Mi Barbería" }: HeroSectionProps) {
+export default function HeroSection({ galleryImages = [], shopName = "Mi Barbería", city = "" }: HeroSectionProps) {
   const [phraseIndex, setPhraseIndex] = useState(0)
   const [displayed, setDisplayed] = useState("")
   const [isDeleting, setIsDeleting] = useState(false)
@@ -348,7 +349,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
               {/* Location badge */}
               <div className="fs-badge inline-flex items-center gap-2.5 border border-[#d97706]/25 bg-[#d97706]/8 text-[#d97706] text-[11px] font-bold px-4 py-2 rounded-full mb-6 lg:mb-8 tracking-[0.2em] uppercase">
                 <span className="fs-dot inline-block w-1.5 h-1.5 rounded-full bg-[#d97706]" />
-                Tu ciudad
+                {city || "Tu ciudad"}
               </div>
 
               {/* Headline — staggered lines */}

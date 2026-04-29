@@ -53,6 +53,7 @@ export default async function Home() {
   ])
 
   const shopName = settings?.shopName || "Mi Barbería"
+  const city = (settings as any)?.city || ""
 
   return (
     <div className="min-h-screen text-white overflow-x-hidden">
@@ -91,7 +92,7 @@ export default async function Home() {
       <div className="relative z-10">
 
       {/* ── Hero ── */}
-      <HeroSection galleryImages={gallery.map((item) => item.imageUrl)} shopName={shopName} />
+      <HeroSection galleryImages={gallery.map((item) => item.imageUrl)} shopName={shopName} city={city} />
 
       {/* ── Services ── */}
       <section id="servicios" className="py-28 border-t border-white/5">

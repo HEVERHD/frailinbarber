@@ -31,6 +31,7 @@ export default function SettingsPage() {
     daysOff: [] as string[],
     daySchedules: {} as Record<string, { open: string; close: string }>,
     address: "",
+    city: "",
     phone: "",
   })
   const [loading, setLoading] = useState(true)
@@ -79,6 +80,7 @@ export default function SettingsPage() {
             daysOff: data.daysOff ? data.daysOff.split(",").filter(Boolean) : [],
             daySchedules: parsedDaySchedules,
             address: data.address || "",
+            city: data.city || "",
             phone: data.phone || "",
           })
         }
@@ -185,6 +187,16 @@ export default function SettingsPage() {
                 type="text"
                 value={settings.shopName}
                 onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-white/60">Ciudad <span className="text-white/30 font-normal">(aparece en la página de inicio)</span></label>
+              <input
+                type="text"
+                value={settings.city}
+                onChange={(e) => setSettings({ ...settings, city: e.target.value })}
+                placeholder="Ej: Panamá, Bogotá, Miami..."
                 className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
               />
             </div>

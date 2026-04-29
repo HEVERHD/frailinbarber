@@ -58,6 +58,7 @@ export async function PUT(req: NextRequest) {
       daysOff: body.daysOff,
       daySchedules: body.daySchedules ?? null,
       address: body.address ?? null,
+      city: body.city ?? null,
       phone: body.phone,
     },
     create: {
@@ -68,6 +69,7 @@ export async function PUT(req: NextRequest) {
       daysOff: body.daysOff,
       daySchedules: body.daySchedules ?? null,
       address: body.address ?? null,
+      city: body.city ?? null,
       phone: body.phone,
       userId: targetUserId,
     },

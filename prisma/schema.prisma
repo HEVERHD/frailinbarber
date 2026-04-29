@@ -141,6 +141,7 @@ model BarberSettings {
   daysOff       String  @default("0")
   daySchedules  String? // JSON: {"0":{"open":"09:00","close":"18:00"},...} - per-day overrides
   address       String? // Physical address for the "Como llegar" section
+  city          String? // Shown in the hero badge on the public page
   phone         String?
   userId        String  @unique
   user          User    @relation(fields: [userId], references: [id])
