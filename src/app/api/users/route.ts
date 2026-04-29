@@ -84,6 +84,47 @@ export async function PATCH(req: Request) {
   return NextResponse.json(updated)
 }
 
+export async function PUT(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
+
+  const currentUser = await prisma.user.findUnique({
+    where: { email: session.user?.email || "" },
+  })
+  if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "BARBER")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+  }
+
+  const { userId, name, phone, email } = await req.json()
+  if (!userId) return NextResponse.json({ error: "id requerido" }, { status: 400 })
+
+  const target = await prisma.user.findUnique({ where: { id: userId } })
+  if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+
+  // BARBER can only edit CLIENT users
+  if (currentUser.role === "BARBER" && target.role !== "CLIENT") {
+    return NextResponse.json({ error: "Solo puedes editar clientes" }, { status: 403 })
+  }
+
+  // Check email uniqueness if changing it
+  if (email && email !== target.email) {
+    const existing = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } })
+    if (existing) return NextResponse.json({ error: "Ese email ya está en uso" }, { status: 409 })
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...(name !== undefined && { name }),
+      ...(phone !== undefined && { phone }),
+      ...(email !== undefined && { email }),
+    },
+    select: { id: true, name: true, email: true, phone: true, role: true },
+  })
+
+  return NextResponse.json(updated)
+}
+
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: "No autorizado" }, { status: 401 })
@@ -91,8 +132,8 @@ export async function DELETE(req: NextRequest) {
   const currentUser = await prisma.user.findUnique({
     where: { email: session.user?.email || "" },
   })
-  if (!currentUser || currentUser.role !== "ADMIN") {
-    return NextResponse.json({ error: "Solo el administrador puede eliminar usuarios" }, { status: 403 })
+  if (!currentUser || (currentUser.role !== "ADMIN" && currentUser.role !== "BARBER")) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
   const { searchParams } = new URL(req.url)
@@ -105,6 +146,11 @@ export async function DELETE(req: NextRequest) {
 
   const target = await prisma.user.findUnique({ where: { id: userId } })
   if (!target) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
+
+  // BARBER can only delete CLIENT users
+  if (currentUser.role === "BARBER" && target.role !== "CLIENT") {
+    return NextResponse.json({ error: "Solo puedes eliminar clientes" }, { status: 403 })
+  }
 
   // Delete all related data before removing the user
   await prisma.$transaction(async (tx) => {

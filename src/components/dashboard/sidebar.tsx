@@ -31,7 +31,7 @@ const allNavItems = [
   { href: "/gallery", label: "Galería", Icon: ImageIcon, roles: ["ADMIN", "BARBER"] },
   { href: "/waitlist", label: "Lista espera", Icon: Clock, roles: ["ADMIN", "BARBER"] },
   { href: "/blocked-slots", label: "Bloqueos", Icon: Ban, roles: ["ADMIN", "BARBER"] },
-  { href: "/users", label: "Usuarios", Icon: KeyRound, roles: ["ADMIN"] },
+  { href: "/users", label: "Usuarios", Icon: KeyRound, roles: ["ADMIN", "BARBER"] },
   { href: "/profile", label: "Mi Perfil", Icon: UserCircle, roles: ["ADMIN", "BARBER"] },
   { href: "/settings", label: "Configuración", Icon: Settings, roles: ["ADMIN", "BARBER"] },
 ]
@@ -185,7 +185,7 @@ export function Sidebar() {
             >
               {pushState === "subscribed" ? <Bell size={18} /> : <BellOff size={18} />}
             </button>
-            {role === "ADMIN" && (
+            {(role === "ADMIN" || role === "BARBER") && (
               <Link
                 href="/users"
                 className={`p-2.5 rounded-xl transition ${

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useToast } from "@/components/ui/toast"
-import { Trash2 } from "lucide-react"
+import { Trash2, Pencil, X } from "lucide-react"
 
 type User = {
   id: string
@@ -21,9 +21,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [editUser, setEditUser] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "" })
+  const [saving, setSaving] = useState(false)
   const { data: session } = useSession()
   const { toast } = useToast()
   const myId = (session?.user as any)?.id
+  const myRole = (session?.user as any)?.role
 
   useEffect(() => {
     fetchUsers()
@@ -72,8 +76,112 @@ export default function UsersPage() {
     }
   }
 
+  const openEdit = (user: User) => {
+    setEditUser(user)
+    setEditForm({
+      name: user.name || "",
+      phone: user.phone || "",
+      email: user.email || "",
+    })
+  }
+
+  const saveEdit = async () => {
+    if (!editUser) return
+    setSaving(true)
+    const res = await fetch("/api/users", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: editUser.id,
+        name: editForm.name || null,
+        phone: editForm.phone || null,
+        email: editForm.email || null,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      toast("Usuario actualizado")
+      setEditUser(null)
+      fetchUsers()
+    } else {
+      const data = await res.json()
+      toast(data.error || "Error al guardar", "error")
+    }
+  }
+
+  const canDelete = (user: User) =>
+    user.id !== myId && (myRole === "ADMIN" || user.role === "CLIENT")
+
+  const canEdit = (user: User) =>
+    myRole === "ADMIN" || user.role === "CLIENT"
+
   return (
     <div>
+      {/* Edit modal */}
+      {editUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">Editar usuario</h3>
+              <button
+                onClick={() => setEditUser(null)}
+                className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-white/40 mb-1 block">Nombre</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full bg-[#1a0a0a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#e84118]/50"
+                  placeholder="Nombre completo"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 mb-1 block">Teléfono</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                  className="w-full bg-[#1a0a0a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#e84118]/50"
+                  placeholder="Número de teléfono"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 mb-1 block">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full bg-[#1a0a0a] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-[#e84118]/50"
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setEditUser(null)}
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:bg-white/5 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-[#e84118] text-white text-sm font-semibold hover:bg-[#c0392b] transition disabled:opacity-50"
+              >
+                {saving ? "Guardando..." : "Guardar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm delete modal */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -111,7 +219,9 @@ export default function UsersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Usuarios</h1>
-          <p className="text-sm text-white/40 mt-1">Administra los roles de los usuarios</p>
+          <p className="text-sm text-white/40 mt-1">
+            {myRole === "ADMIN" ? "Administra los roles de los usuarios" : "Gestiona los clientes"}
+          </p>
         </div>
       </div>
 
@@ -192,7 +302,7 @@ export default function UsersPage() {
 
                 {/* Actions */}
                 <div className="flex-shrink-0 flex items-center gap-2">
-                  {user.role === "CLIENT" && (
+                  {myRole === "ADMIN" && user.role === "CLIENT" && (
                     <button
                       onClick={() => changeRole(user.id, "BARBER")}
                       className="px-3 py-2 text-xs font-medium rounded-lg bg-[#e84118] text-white hover:bg-[#c0392b] transition"
@@ -200,7 +310,7 @@ export default function UsersPage() {
                       Hacer Barbero
                     </button>
                   )}
-                  {user.role === "BARBER" && (
+                  {myRole === "ADMIN" && user.role === "BARBER" && (
                     <button
                       onClick={() => changeRole(user.id, "CLIENT")}
                       className="px-3 py-2 text-xs font-medium rounded-lg bg-[#3d2020] text-white/50 hover:bg-[#4d2c2c] transition"
@@ -208,7 +318,16 @@ export default function UsersPage() {
                       Quitar
                     </button>
                   )}
-                  {user.id !== myId && (
+                  {canEdit(user) && (
+                    <button
+                      onClick={() => openEdit(user)}
+                      className="p-2 rounded-lg text-white/20 hover:text-[#e84118] hover:bg-[#e84118]/10 transition"
+                      title="Editar usuario"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                  )}
+                  {canDelete(user) && (
                     <button
                       onClick={() => setConfirmDelete(user)}
                       className="p-2 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-900/20 transition"

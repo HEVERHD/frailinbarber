@@ -474,7 +474,7 @@ export default function BookingPage() {
                   return (
                     <button
                       key={slot}
-                      onClick={() => setSelectedTime(slot)}
+                      onClick={() => { setSelectedTime(slot); setTimeout(() => setStep("info"), 150) }}
                       className={`py-3 rounded-xl border transition flex flex-col items-center gap-0.5
                         ${isSelected
                           ? "bg-[#d97706] border-[#d97706] text-white shadow-lg shadow-[#d97706]/25"
