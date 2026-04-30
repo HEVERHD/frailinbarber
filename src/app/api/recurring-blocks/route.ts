@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const userId = (session.user as any).id
+  const role = (session.user as any).role
   const body = await req.json()
 
   // ADMIN puede especificar el barbero; BARBER siempre es el propio userId
