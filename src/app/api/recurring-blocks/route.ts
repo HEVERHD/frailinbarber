@@ -15,6 +15,7 @@ export async function GET() {
   const blocks = await prisma.recurringBlock.findMany({
     where: role === "ADMIN" ? {} : { barberId: userId },
     orderBy: { startTime: "asc" },
+    include: { barber: { select: { name: true } } },
   })
 
   return NextResponse.json(blocks)
@@ -27,6 +28,9 @@ export async function POST(req: NextRequest) {
   const userId = (session.user as any).id
   const body = await req.json()
 
+  // ADMIN puede especificar el barbero; BARBER siempre es el propio userId
+  const targetBarberId = role === "ADMIN" && body.barberId ? body.barberId : userId
+
   const block = await prisma.recurringBlock.create({
     data: {
       startTime: body.startTime,
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
       reason: body.reason || null,
       allDay: body.allDay ?? false,
       daysOfWeek: body.daysOfWeek ?? "",
-      barberId: userId,
+      barberId: targetBarberId,
     },
   })
 

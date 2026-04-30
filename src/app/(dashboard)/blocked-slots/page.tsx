@@ -15,6 +15,11 @@ type BlockedSlot = {
   createdAt: string
 }
 
+type Barber = {
+  id: string
+  name: string | null
+}
+
 type RecurringBlock = {
   id: string
   startTime: string
@@ -22,6 +27,8 @@ type RecurringBlock = {
   reason: string | null
   allDay: boolean
   daysOfWeek: string
+  barberId: string
+  barber?: { name: string | null }
 }
 
 const DAYS = [
@@ -57,7 +64,9 @@ export default function BlockedSlotsPage() {
   const [showRecurringForm, setShowRecurringForm] = useState(false)
   const [quickDate, setQuickDate] = useState(new Date().toISOString().split("T")[0])
   const [quickLoading, setQuickLoading] = useState<string | null>(null)
-  const [recurringForm, setRecurringForm] = useState({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5] })
+  const [barbers, setBarbers] = useState<Barber[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [recurringForm, setRecurringForm] = useState({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5], barberId: "" })
   const [form, setForm] = useState({
     date: new Date().toISOString().split("T")[0],
     startTime: "09:00",
@@ -68,6 +77,19 @@ export default function BlockedSlotsPage() {
 
   useEffect(() => {
     fetchAll()
+    // Detect role and load barbers for ADMIN
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((users: { id: string; name: string | null; role: string }[]) => {
+        const admins = users.filter((u) => u.role === "ADMIN")
+        if (admins.length > 0) {
+          setIsAdmin(true)
+          const barberList = users.filter((u) => u.role === "BARBER" || u.role === "ADMIN")
+          setBarbers(barberList)
+          setRecurringForm((prev) => ({ ...prev, barberId: barberList[0]?.id ?? "" }))
+        }
+      })
+      .catch(() => {})
   }, [])
 
   const fetchAll = async () => {
@@ -123,15 +145,19 @@ export default function BlockedSlotsPage() {
   }
 
   const createRecurring = async (preset?: { startTime: string; endTime: string; reason: string; daysOfWeek?: string }) => {
+    if (!preset && recurringForm.startTime >= recurringForm.endTime) {
+      alert("La hora de fin debe ser después de la hora de inicio")
+      return
+    }
     const data = preset
-      ? { ...preset, allDay: false }
+      ? { ...preset, allDay: false, ...(isAdmin && recurringForm.barberId ? { barberId: recurringForm.barberId } : {}) }
       : { ...recurringForm, allDay: false, daysOfWeek: recurringForm.daysOfWeek.join(",") }
     await fetch("/api/recurring-blocks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    setRecurringForm({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5] })
+    setRecurringForm((prev) => ({ startTime: "11:58", endTime: "13:00", reason: "", daysOfWeek: [1, 2, 3, 4, 5], barberId: prev.barberId }))
     setShowRecurringForm(false)
     fetchAll()
   }
@@ -197,6 +223,28 @@ export default function BlockedSlotsPage() {
         {showRecurringForm && (
           <div className="px-5 py-4 border-b border-[#3d2020] bg-[#1a0a0a]">
             <p className="text-xs text-white/40 mb-3">Agrega un bloqueo que se repita semanalmente en los días seleccionados</p>
+            {/* Barber selector — ADMIN only */}
+            {isAdmin && barbers.length > 1 && (
+              <div className="mb-3">
+                <label className="text-xs text-white/50 mb-1.5 block">¿Para quién es el bloqueo?</label>
+                <div className="flex flex-wrap gap-2">
+                  {barbers.map((b) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => setRecurringForm((prev) => ({ ...prev, barberId: b.id }))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        recurringForm.barberId === b.id
+                          ? "bg-[#e84118] text-white"
+                          : "bg-[#2d1515] border border-[#3d2020] text-white/50 hover:border-[#e84118]/40 hover:text-white/80"
+                      }`}
+                    >
+                      {b.name || "Sin nombre"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Almuerzo shortcut */}
             <button
               onClick={() => createRecurring({ startTime: "11:58", endTime: "13:00", reason: "Almuerzo", daysOfWeek: "" })}
@@ -291,7 +339,12 @@ export default function BlockedSlotsPage() {
                       {r.allDay ? "Todo el día" : `${to12Hour(r.startTime)} – ${to12Hour(r.endTime)}`}
                       {r.reason && <span className="text-white/40 font-normal"> · {r.reason}</span>}
                     </p>
-                    <p className="text-xs text-[#e84118]/70">{formatDaysOfWeek(r.daysOfWeek)}</p>
+                    <p className="text-xs text-[#e84118]/70">
+                      {formatDaysOfWeek(r.daysOfWeek)}
+                      {isAdmin && r.barber?.name && (
+                        <span className="text-white/30 ml-1.5">· {r.barber.name}</span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <button
