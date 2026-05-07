@@ -225,6 +225,11 @@ export async function POST(req: NextRequest) {
       return aptStart < toMin(blocked.endTime) && aptEnd > toMin(blocked.startTime)
     }) ||
     recurringBlocks.some((r) => {
+      // Check day-of-week filter (empty string = all days)
+      if (r.daysOfWeek) {
+        const days = r.daysOfWeek.split(",").map(Number)
+        if (!days.includes(getColombiaDayOfWeek(appointmentDate))) return false
+      }
       if (r.allDay) return true
       return aptStart < toMin(r.endTime) && aptEnd > toMin(r.startTime)
     })
