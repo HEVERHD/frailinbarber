@@ -235,6 +235,7 @@ export default function BookingPage() {
         price: selectedService.price.toString(),
         name: clientName,
         barber: selectedBarber.name || "",
+        barberImage: selectedBarber.avatarUrl || selectedBarber.image || "",
       })
       localStorage.setItem("barber_client", JSON.stringify({ name: clientName, phone: clientPhone, email: clientEmail }))
       router.push(`/booking/confirm?${params.toString()}`)
@@ -638,28 +639,44 @@ export default function BookingPage() {
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {slots.map((slot) => {
-                  const [h, m] = slot.split(":").map(Number)
-                  const period = h >= 12 ? "PM" : "AM"
-                  const hour = h % 12 || 12
-                  const timeStr = `${hour}:${m.toString().padStart(2, "0")}`
-                  const isSelected = selectedTime === slot
-                  return (
-                    <button
-                      key={slot}
-                      onClick={() => { setSelectedTime(slot); setTimeout(() => setStep("info"), 150) }}
-                      className={`py-3 rounded-xl border transition flex flex-col items-center gap-0.5
-                        ${isSelected
-                          ? "bg-[#d97706] border-[#d97706] text-white shadow-lg shadow-[#d97706]/25"
-                          : "border-white/12 bg-[#1a1a1a] text-white/70 hover:border-[#d97706]/40 hover:text-white"
-                        }`}
-                    >
-                      <span className="font-bold text-[13px] leading-tight">{timeStr}</span>
-                      <span className={`text-[10px] leading-tight ${isSelected ? "text-white/70" : "text-white/30"}`}>{period}</span>
-                    </button>
-                  )
-                })}
+              <div className="space-y-5">
+                {[
+                  { label: "Mañana", emoji: "☀️", test: (h: number) => h < 12 },
+                  { label: "Tarde",  emoji: "🌤️", test: (h: number) => h >= 12 && h < 17 },
+                  { label: "Noche",  emoji: "🌙", test: (h: number) => h >= 17 },
+                ]
+                  .map((group) => ({ ...group, items: slots.filter((s) => group.test(parseInt(s.split(":")[0]))) }))
+                  .filter((group) => group.items.length > 0)
+                  .map((group) => (
+                    <div key={group.label}>
+                      <p className="text-[11px] font-bold text-white/25 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                        <span>{group.emoji}</span>{group.label}
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {group.items.map((slot) => {
+                          const [h, m] = slot.split(":").map(Number)
+                          const period = h >= 12 ? "PM" : "AM"
+                          const hour = h % 12 || 12
+                          const timeStr = `${hour}:${m.toString().padStart(2, "0")}`
+                          const isSelected = selectedTime === slot
+                          return (
+                            <button
+                              key={slot}
+                              onClick={() => { setSelectedTime(slot); setTimeout(() => setStep("info"), 150) }}
+                              className={`py-3 rounded-xl border transition flex flex-col items-center gap-0.5
+                                ${isSelected
+                                  ? "bg-[#d97706] border-[#d97706] text-white shadow-lg shadow-[#d97706]/25"
+                                  : "border-white/12 bg-[#1a1a1a] text-white/70 hover:border-[#d97706]/40 hover:text-white"
+                                }`}
+                            >
+                              <span className="font-bold text-[13px] leading-tight">{timeStr}</span>
+                              <span className={`text-[10px] leading-tight ${isSelected ? "text-white/70" : "text-white/30"}`}>{period}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
               </div>
             )}
 
@@ -667,13 +684,6 @@ export default function BookingPage() {
             <div className="flex gap-3 mt-8">
               <button onClick={() => setStep("service")} className="flex-1 py-3.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:border-white/20 transition text-sm font-medium flex items-center justify-center gap-2">
                 <ArrowLeft size={14} /> Atrás
-              </button>
-              <button
-                onClick={() => selectedDate && selectedTime && setStep("info")}
-                disabled={!selectedDate || !selectedTime}
-                className="flex-1 py-3.5 rounded-xl bg-[#d97706] text-white font-semibold hover:bg-[#c0392b] transition disabled:opacity-30 text-sm"
-              >
-                Siguiente
               </button>
             </div>
           </div>
@@ -831,6 +841,33 @@ export default function BookingPage() {
           </div>
         )}
       </div>
+
+      {/* ── Sticky mini-summary bar ── */}
+      {selectedService && step !== "barber" && step !== "confirm" && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0d0d0d]/95 backdrop-blur-md border-t border-white/8 px-4 py-3 safe-area-inset-bottom">
+          <div className="max-w-md mx-auto flex items-center gap-3">
+            {selectedBarber && (selectedBarber.avatarUrl || selectedBarber.image) ? (
+              <img
+                src={selectedBarber.avatarUrl || selectedBarber.image || ""}
+                alt={selectedBarber.name || ""}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0 ring-1 ring-white/10"
+              />
+            ) : selectedBarber ? (
+              <div className="w-8 h-8 rounded-full bg-[#d97706]/20 flex items-center justify-center flex-shrink-0 text-[#d97706] font-bold text-sm">
+                {(selectedBarber.name || "B")[0].toUpperCase()}
+              </div>
+            ) : null}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-white leading-tight truncate">{selectedService.name}</p>
+              <p className="text-xs text-white/35 truncate">
+                {selectedBarber?.name || ""}
+                {selectedTime ? ` · ${formatTime(selectedTime)}` : ""}
+              </p>
+            </div>
+            <p className="text-sm font-bold text-[#d97706] flex-shrink-0">{formatPrice(selectedService.price)}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

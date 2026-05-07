@@ -358,6 +358,119 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json()
+
+  // ── REAGENDAR ──────────────────────────────────────────────
+  if (body.action === "reschedule") {
+    const existing = await prisma.appointment.findUnique({
+      where: { id: body.id },
+      include: { service: true, user: true },
+    })
+    if (!existing) return NextResponse.json({ error: "Cita no encontrada" }, { status: 404 })
+    if (existing.status !== "PENDING" && existing.status !== "CONFIRMED") {
+      return NextResponse.json({ error: "Solo se pueden reagendar citas pendientes o confirmadas" }, { status: 400 })
+    }
+
+    const newDate = parseColombia(body.newDate)
+    const newEnd = new Date(newDate.getTime() + existing.service.duration * 60000)
+    const newDateStr = getColombiaDateStr(newDate)
+
+    // Validate business hours
+    const settings = await prisma.barberSettings.findUnique({ where: { userId: existing.barberId } })
+    if (settings) {
+      const daysOff = settings.daysOff.split(",").filter(Boolean).map(Number)
+      if (daysOff.includes(getColombiaDayOfWeek(newDate))) {
+        return NextResponse.json({ error: "Este día no hay servicio. Selecciona otro día." }, { status: 400 })
+      }
+      const colTime = getColombiaTime(newDate)
+      const aptMinutes = colTime.hours * 60 + colTime.minutes
+      const dayOfWeek = getColombiaDayOfWeek(newDate)
+      let effectiveOpen = settings.openTime
+      let effectiveClose = settings.closeTime
+      if (settings.daySchedules) {
+        try {
+          const daySchedules = JSON.parse(settings.daySchedules) as Record<string, { open: string; close: string }>
+          const dayKey = String(dayOfWeek)
+          if (daySchedules[dayKey]) {
+            effectiveOpen = daySchedules[dayKey].open
+            effectiveClose = daySchedules[dayKey].close
+          }
+        } catch {}
+      }
+      const [openH, openM] = effectiveOpen.split(":").map(Number)
+      const [closeH, closeM] = effectiveClose.split(":").map(Number)
+      const openMinutes = openH * 60 + openM
+      const closeMinutes = closeH * 60 + closeM
+      if (aptMinutes < openMinutes || aptMinutes + existing.service.duration > closeMinutes) {
+        return NextResponse.json({ error: `Horario fuera de servicio. Atendemos de ${to12Hour(effectiveOpen)} a ${to12Hour(effectiveClose)}.` }, { status: 400 })
+      }
+    }
+
+    // Check conflicts excluding the current appointment
+    const conflictingApts = await prisma.appointment.findMany({
+      where: {
+        date: {
+          gte: parseColombia(newDateStr + "T00:00:00"),
+          lt: parseColombia(newDateStr + "T23:59:59"),
+        },
+        status: { in: ["PENDING", "CONFIRMED"] },
+        barberId: existing.barberId,
+        NOT: { id: existing.id },
+      },
+      include: { service: true },
+    })
+    const hasConflict = conflictingApts.some((a) => {
+      const aStart = new Date(a.date).getTime()
+      const aEnd = aStart + a.service.duration * 60000
+      return newDate.getTime() < aEnd && newEnd.getTime() > aStart
+    })
+    if (hasConflict) {
+      return NextResponse.json({ error: "Ya existe una cita en ese horario. Selecciona otro." }, { status: 409 })
+    }
+
+    // Check blocked slots and recurring blocks
+    const rsColTime = getColombiaTime(newDate)
+    const rsAptStart = rsColTime.hours * 60 + rsColTime.minutes
+    const rsAptEnd = rsAptStart + existing.service.duration
+    const rsToMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m }
+    const [blockedSlots, recurringBlocks] = await Promise.all([
+      prisma.blockedSlot.findMany({ where: { date: newDateStr, barberId: existing.barberId } }),
+      prisma.recurringBlock.findMany({ where: { barberId: existing.barberId } }),
+    ])
+    const isBlocked =
+      blockedSlots.some((b) => {
+        if (b.allDay) return true
+        return rsAptStart < rsToMin(b.endTime) && rsAptEnd > rsToMin(b.startTime)
+      }) ||
+      recurringBlocks.some((r) => {
+        if (r.daysOfWeek) {
+          const days = r.daysOfWeek.split(",").map(Number)
+          if (!days.includes(getColombiaDayOfWeek(newDate))) return false
+        }
+        if (r.allDay) return true
+        return rsAptStart < rsToMin(r.endTime) && rsAptEnd > rsToMin(r.startTime)
+      })
+    if (isBlocked) {
+      return NextResponse.json({ error: "Este horario está bloqueado. Selecciona otro." }, { status: 409 })
+    }
+
+    // Update appointment with new date, reset 24h reminder flag
+    const updated = await prisma.appointment.update({
+      where: { id: existing.id },
+      data: { date: newDate, reminded24h: false },
+      include: { service: true, user: true },
+    })
+
+    // Notify client via WhatsApp (fire-and-forget)
+    if (existing.user.phone) {
+      const shopName = settings?.shopName || "Mi Barbería"
+      const msg = `Hola ${existing.user.name?.split(" ")[0] || "Cliente"} 👋 Tu cita ha sido *reagendada*.\n\n💈 Servicio: ${existing.service.name}\n📅 Nueva fecha: ${formatDate(newDate)}\n⏰ Nueva hora: ${formatTime(newDate)}\n📍 ${shopName}`
+      sendWhatsAppMessage(existing.user.phone, msg).catch(() => {})
+    }
+
+    return NextResponse.json(updated)
+  }
+  // ──────────────────────────────────────────────────────────
+
   const appointment = await prisma.appointment.update({
     where: { id: body.id },
     data: { status: body.status },

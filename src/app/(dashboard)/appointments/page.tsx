@@ -13,6 +13,8 @@ type Appointment = {
   status: string
   bookedBy: string
   notes: string | null
+  serviceId: string
+  barberId: string
   user: { name: string | null; phone: string | null }
   service: { name: string; price: number; duration: number }
   barber?: { id: string; name: string | null }
@@ -106,6 +108,15 @@ export default function AppointmentsPage() {
   const [uploadTitle, setUploadTitle] = useState("")
   const [uploadUploading, setUploadUploading] = useState(false)
   const photoInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Reschedule state ──
+  const [rescheduleApt, setRescheduleApt] = useState<Appointment | null>(null)
+  const [rescheduleDate, setRescheduleDate] = useState("")
+  const [rescheduleTime, setRescheduleTime] = useState("")
+  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([])
+  const [rescheduleLoadingSlots, setRescheduleLoadingSlots] = useState(false)
+  const [rescheduleError, setRescheduleError] = useState("")
+  const [rescheduling, setRescheduling] = useState(false)
   const { toast } = useToast()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
@@ -343,6 +354,52 @@ export default function AppointmentsPage() {
       setFormError("Error de conexión. Intenta de nuevo.")
     } finally {
       setCreating(false)
+    }
+  }
+
+  const fetchRescheduleSlots = async (date: string, apt: Appointment) => {
+    setRescheduleLoadingSlots(true)
+    setRescheduleTime("")
+    try {
+      const barberId = apt.barber?.id || apt.barberId || userId
+      const res = await fetch(`/api/appointments/slots?date=${date}&serviceId=${apt.serviceId}&barberId=${barberId}`)
+      const data = await res.json()
+      const available = (data.slots || []).filter((s: any) => s.available).map((s: any) => s.time)
+      setRescheduleSlots(available)
+    } catch {
+      setRescheduleSlots([])
+    } finally {
+      setRescheduleLoadingSlots(false)
+    }
+  }
+
+  const handleReschedule = async () => {
+    if (!rescheduleApt || !rescheduleDate || !rescheduleTime) return
+    setRescheduling(true)
+    setRescheduleError("")
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: rescheduleApt.id,
+          action: "reschedule",
+          newDate: `${rescheduleDate}T${rescheduleTime}:00`,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setRescheduleError(data.error || "Error al reagendar")
+        return
+      }
+      setRescheduleApt(null)
+      toast("Cita reagendada ✓")
+      fetchAppointments()
+      fetchWeekAppointments()
+    } catch {
+      setRescheduleError("Error de conexión. Intenta de nuevo.")
+    } finally {
+      setRescheduling(false)
     }
   }
 
@@ -784,6 +841,22 @@ export default function AppointmentsPage() {
               {(actionApt.status === "PENDING" || actionApt.status === "CONFIRMED") && (
                 <>
                   <button
+                    onClick={() => {
+                      const apt = actionApt
+                      setActionApt(null)
+                      const initDate = colombiaDateStr(new Date(apt.date))
+                      setRescheduleApt(apt)
+                      setRescheduleDate(initDate)
+                      setRescheduleTime("")
+                      setRescheduleError("")
+                      setRescheduleSlots([])
+                      fetchRescheduleSlots(initDate, apt)
+                    }}
+                    className="w-full py-3 rounded-xl bg-amber-900/30 text-amber-400 font-medium text-sm hover:bg-amber-900/50 transition"
+                  >
+                    📅 Reagendar
+                  </button>
+                  <button
                     onClick={() => { setActionApt(null); setCompletionApt(actionApt) }}
                     className="w-full py-3 rounded-xl bg-green-900/30 text-green-400 font-medium text-sm hover:bg-green-900/50 transition"
                   >
@@ -934,6 +1007,161 @@ export default function AppointmentsPage() {
           </div>
         </div>
       )}
+
+      {/* ============ RESCHEDULE MODAL ============ */}
+      {rescheduleApt && (() => {
+        const weekDaysRs = getWeekDays(rescheduleDate)
+        const todayStr = colombiaDateStr(new Date())
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            onClick={() => setRescheduleApt(null)}
+          >
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <div
+              className="relative w-full sm:max-w-md bg-[#1a0a0a] rounded-t-3xl sm:rounded-2xl border border-[#3d2020] overflow-hidden z-10 max-h-[92vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </div>
+
+              {/* Header */}
+              <div className="px-5 py-3 border-b border-[#3d2020] flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#e84118]/20 flex items-center justify-center text-[#e84118] font-bold text-base flex-shrink-0">
+                    {(rescheduleApt.user.name || "?")[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-white truncate">{rescheduleApt.user.name || "Cliente"}</p>
+                    <p className="text-xs text-white/40">
+                      {rescheduleApt.service.name} · Actual:{" "}
+                      {new Date(rescheduleApt.date).toLocaleString("es-CO", {
+                        weekday: "short", day: "numeric", month: "short",
+                        hour: "2-digit", minute: "2-digit", hour12: true, timeZone: COL_TZ,
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm font-semibold text-white mt-3">Selecciona nueva fecha y hora</p>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="overflow-y-auto flex-1">
+                {/* Week navigation */}
+                <div className="px-5 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      onClick={() => {
+                        const d = new Date(rescheduleDate + "T12:00:00")
+                        d.setDate(d.getDate() - 7)
+                        setRescheduleDate(d.toISOString().split("T")[0])
+                      }}
+                      className="p-2 rounded-lg bg-[#2d1515] border border-[#3d2020] text-white/60 hover:text-white transition"
+                    >
+                      ←
+                    </button>
+                    <span className="text-xs text-white/40">
+                      {weekDaysRs[0].dayNum}{" "}
+                      {new Date(weekDaysRs[0].date + "T12:00:00").toLocaleDateString("es-CO", { month: "short" })}
+                      {" — "}
+                      {weekDaysRs[6].dayNum}{" "}
+                      {new Date(weekDaysRs[6].date + "T12:00:00").toLocaleDateString("es-CO", { month: "short" })}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const d = new Date(rescheduleDate + "T12:00:00")
+                        d.setDate(d.getDate() + 7)
+                        setRescheduleDate(d.toISOString().split("T")[0])
+                      }}
+                      className="p-2 rounded-lg bg-[#2d1515] border border-[#3d2020] text-white/60 hover:text-white transition"
+                    >
+                      →
+                    </button>
+                  </div>
+
+                  {/* Day pills */}
+                  <div className="grid grid-cols-7 gap-1 mb-4">
+                    {weekDaysRs.map((day) => {
+                      const isPastDay = day.date < todayStr
+                      const isSelected = day.date === rescheduleDate
+                      return (
+                        <button
+                          key={day.date}
+                          disabled={isPastDay}
+                          onClick={() => {
+                            setRescheduleDate(day.date)
+                            fetchRescheduleSlots(day.date, rescheduleApt)
+                          }}
+                          className={`flex flex-col items-center py-2 rounded-xl text-xs transition
+                            ${isSelected
+                              ? "bg-[#e84118] text-white"
+                              : isPastDay
+                              ? "text-white/20 cursor-not-allowed"
+                              : "bg-[#2d1515] text-white/60 hover:bg-[#3d2020] hover:text-white border border-[#3d2020]"
+                            }`}
+                        >
+                          <span className="font-medium">{day.dayName}</span>
+                          <span className="text-[11px] mt-0.5">{day.dayNum}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Time slots */}
+                <div className="px-5 pb-4">
+                  {rescheduleLoadingSlots ? (
+                    <div className="flex justify-center py-8">
+                      <Loader />
+                    </div>
+                  ) : rescheduleSlots.length === 0 ? (
+                    <p className="text-center text-white/30 text-sm py-6">Sin disponibilidad para este día</p>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {rescheduleSlots.map((slot) => (
+                        <button
+                          key={slot}
+                          onClick={() => setRescheduleTime(slot)}
+                          className={`py-2.5 rounded-xl text-sm font-medium transition
+                            ${rescheduleTime === slot
+                              ? "bg-[#e84118] text-white"
+                              : "bg-[#2d1515] text-white/70 hover:bg-[#3d2020] hover:text-white border border-[#3d2020]"
+                            }`}
+                        >
+                          {to12Hour(slot)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {rescheduleError && (
+                    <p className="text-red-400 text-sm text-center mt-3">{rescheduleError}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pb-6 pt-3 border-t border-[#3d2020] flex-shrink-0 space-y-2">
+                <button
+                  onClick={handleReschedule}
+                  disabled={!rescheduleTime || rescheduling}
+                  className="w-full py-3 rounded-xl bg-[#e84118] text-white font-semibold text-sm hover:bg-[#c0392b] transition disabled:opacity-40"
+                >
+                  {rescheduling ? "Guardando..." : "Guardar nuevo horario"}
+                </button>
+                <button
+                  onClick={() => setRescheduleApt(null)}
+                  className="w-full py-3 rounded-xl text-white/30 text-sm hover:text-white/50 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ============ DESKTOP: Weekly calendar / List ============ */}
       <div className="hidden sm:block">
