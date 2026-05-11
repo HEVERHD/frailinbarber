@@ -50,7 +50,10 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
 
-  // ── Reenviar mensaje a Rubén ──────────────────────────────
+  // ── Reenviar mensaje a Rubén (awaited antes de responder) ──
+  // En Vercel, el fire-and-forget mantiene la función viva hasta que
+  // resuelve o agota el timeout. Awaiting aquí garantiza que la función
+  // termina limpiamente en ~1-3 segundos.
   const forwardTo = process.env.FORWARD_WHATSAPP_TO
   if (forwardTo) {
     const registered = isRegistered ? "✅ Cliente registrado" : "❓ No registrado"
@@ -64,9 +67,11 @@ export async function POST(req: NextRequest) {
       `💬 _"${body}"_`,
     ].join("\n")
 
-    sendWhatsAppMessage(forwardTo, msg).catch((err) =>
+    try {
+      await sendWhatsAppMessage(forwardTo, msg)
+    } catch (err) {
       console.error("[Webhook] Error al reenviar mensaje:", err)
-    )
+    }
   } else {
     console.warn("[Webhook] FORWARD_WHATSAPP_TO no está configurado — mensaje no reenviado")
   }
