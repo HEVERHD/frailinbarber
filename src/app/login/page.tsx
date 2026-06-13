@@ -64,7 +64,7 @@ function LoginContent() {
               required
               autoComplete="email"
               placeholder="barbero@email.com"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#d97706] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#e84118] transition"
             />
           </div>
           <div>
@@ -76,7 +76,7 @@ function LoginContent() {
               required
               autoComplete="current-password"
               placeholder="••••••••"
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#d97706] transition"
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm placeholder-white/20 focus:outline-none focus:border-[#e84118] transition"
             />
           </div>
 
@@ -87,7 +87,7 @@ function LoginContent() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-lg bg-[#d97706] text-white font-semibold text-sm hover:bg-[#b45309] transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-lg bg-[#e84118] text-white font-semibold text-sm hover:bg-[#c0392b] transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Ingresando..." : "Iniciar sesión"}
           </button>

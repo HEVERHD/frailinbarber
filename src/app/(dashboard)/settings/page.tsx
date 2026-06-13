@@ -155,8 +155,8 @@ export default function SettingsPage() {
                     onClick={() => setSelectedBarberId(b.id)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition border-2 ${
                       isSelected
-                        ? "bg-[#d97706] border-[#d97706] text-white shadow-lg shadow-[#d97706]/20"
-                        : "bg-[#1a0a0a] border-[#3d2020] text-white/60 hover:border-[#d97706]/50 hover:text-white"
+                        ? "bg-[#e84118] border-[#e84118] text-white shadow-lg shadow-[#e84118]/20"
+                        : "bg-[#1a0a0a] border-[#3d2020] text-white/60 hover:border-[#e84118]/50 hover:text-white"
                     }`}
                   >
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
@@ -187,7 +187,7 @@ export default function SettingsPage() {
                 type="text"
                 value={settings.shopName}
                 onChange={(e) => setSettings({ ...settings, shopName: e.target.value })}
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
               />
             </div>
             <div>
@@ -197,7 +197,7 @@ export default function SettingsPage() {
                 value={settings.city}
                 onChange={(e) => setSettings({ ...settings, city: e.target.value })}
                 placeholder="Ej: Panamá, Bogotá, Miami..."
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
               />
             </div>
             <div>
@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                 placeholder="+57 3001234567"
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
               />
             </div>
             <div>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                 value={settings.address}
                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
                 placeholder="Calle 123 #45-67, Barrio, Ciudad"
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white placeholder-white/40"
               />
               <p className="text-xs text-white/30 mt-1">Esta dirección aparecerá en el mapa de &quot;Cómo llegar&quot; de la página pública.</p>
             </div>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                 type="time"
                 value={settings.openTime}
                 onChange={(e) => setSettings({ ...settings, openTime: e.target.value })}
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
               />
             </div>
             <div>
@@ -243,7 +243,7 @@ export default function SettingsPage() {
                 type="time"
                 value={settings.closeTime}
                 onChange={(e) => setSettings({ ...settings, closeTime: e.target.value })}
-                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#d97706] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
+                className="w-full mt-1 p-3 border border-[#3d2020] rounded-xl focus:border-[#e84118] focus:outline-none bg-[#1a0a0a] text-white [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
               />
             </div>
           </div>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
 
                 return (
                   <div key={day.value} className="flex items-center gap-3 flex-wrap">
-                    <span className={`w-24 text-sm font-medium ${hasCustom ? "text-[#d97706]" : "text-white/50"}`}>
+                    <span className={`w-24 text-sm font-medium ${hasCustom ? "text-[#e84118]" : "text-white/50"}`}>
                       {day.label}
                     </span>
                     <div className="flex items-center gap-2">
@@ -315,14 +315,14 @@ export default function SettingsPage() {
                         type="time"
                         value={openVal}
                         onChange={(e) => updateDay("open", e.target.value)}
-                        className="p-2 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white text-sm focus:border-[#d97706] focus:outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
+                        className="p-2 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white text-sm focus:border-[#e84118] focus:outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
                       />
                       <span className="text-white/30 text-sm">—</span>
                       <input
                         type="time"
                         value={closeVal}
                         onChange={(e) => updateDay("close", e.target.value)}
-                        className="p-2 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white text-sm focus:border-[#d97706] focus:outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
+                        className="p-2 border border-[#3d2020] rounded-xl bg-[#1a0a0a] text-white text-sm focus:border-[#e84118] focus:outline-none [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-60"
                       />
                     </div>
                     {hasCustom ? (
@@ -360,7 +360,7 @@ export default function SettingsPage() {
               onClick={() => {
                 navigator.clipboard.writeText(`${window.location.origin}/booking`)
               }}
-              className="px-4 py-2 rounded-xl bg-[#d97706] text-white text-sm hover:bg-[#c0392b] transition"
+              className="px-4 py-2 rounded-xl bg-[#e84118] text-white text-sm hover:bg-[#c0392b] transition"
             >
               Copiar
             </button>
@@ -423,7 +423,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-3 rounded-xl bg-[#d97706] text-white font-semibold hover:bg-[#c0392b] transition disabled:opacity-50"
+          className="w-full py-3 rounded-xl bg-[#e84118] text-white font-semibold hover:bg-[#c0392b] transition disabled:opacity-50"
         >
           {saving ? "Guardando..." : "Guardar configuración"}
         </button>

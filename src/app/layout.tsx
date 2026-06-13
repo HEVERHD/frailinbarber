@@ -11,7 +11,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#d97706",
+  themeColor: "#e84118",
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://barberia-demo-eta.vercel.app"

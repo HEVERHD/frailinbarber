@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState, useRef } from "react"
 import Image from "next/image"
 
 // ── Confetti ──────────────────────────────────────────────────
-const COLORS = ["#d97706", "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#ffffff"]
+const COLORS = ["#e84118", "#10b981", "#f59e0b", "#3b82f6", "#8b5cf6", "#ef4444", "#ffffff"]
 
 function Confetti({ active }: { active: boolean }) {
   const particles = useRef(
@@ -124,7 +124,7 @@ function ConfirmContent() {
           {/* Barber avatar above the checkmark */}
           {barberImage && (
             <div className="relative mb-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#d97706]/40 shadow-lg">
+              <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#e84118]/40 shadow-lg">
                 <Image src={barberImage} alt={barber} width={64} height={64} className="object-cover w-full h-full" />
               </div>
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md">
@@ -167,7 +167,7 @@ function ConfirmContent() {
             {/* Service + barber */}
             {service && (
               <div className="flex items-center gap-4 mb-5">
-                <div className="w-12 h-12 bg-[#d97706]/20 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                <div className="w-12 h-12 bg-[#e84118]/20 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                   ✂️
                 </div>
                 <div className="flex-1 min-w-0">
@@ -176,7 +176,7 @@ function ConfirmContent() {
                   {barber && <p className="text-xs text-white/35 mt-0.5">con {barber}</p>}
                 </div>
                 {price && (
-                  <p className="text-lg font-bold text-[#d97706] flex-shrink-0">{formatPrice(price)}</p>
+                  <p className="text-lg font-bold text-[#e84118] flex-shrink-0">{formatPrice(price)}</p>
                 )}
               </div>
             )}
@@ -226,7 +226,7 @@ function ConfirmContent() {
               </a>
               <Link
                 href="/booking"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#d97706] text-white text-sm font-semibold hover:bg-[#b45309] transition"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#e84118] text-white text-sm font-semibold hover:bg-[#c0392b] transition"
               >
                 Agendar otra cita
               </Link>
@@ -254,7 +254,7 @@ export default function ConfirmPage() {
           <div className="flex flex-col items-center gap-4">
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 rounded-full border-2 border-white/10" />
-              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#d97706] animate-spin" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#e84118] animate-spin" />
             </div>
             <span className="text-white/40 text-sm">Cargando...</span>
           </div>

@@ -65,7 +65,7 @@ export default function ProfilePage() {
 
       {/* Profile card */}
       <div className="bg-[#2d1515] rounded-2xl border border-[#3d2020] overflow-hidden mb-6">
-        <div className="h-28 bg-gradient-to-r from-[#d97706] to-[#f0932b]" />
+        <div className="h-28 bg-gradient-to-r from-[#e84118] to-[#f0932b]" />
         <div className="flex flex-col items-center text-center px-6 pb-6">
           <div className="-mt-14 mb-3">
             {session?.user?.image ? (
@@ -77,14 +77,14 @@ export default function ProfilePage() {
                 className="w-24 h-24 rounded-full border-[3px] border-[#2d1515] object-cover bg-[#2d1515]"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full border-[3px] border-[#2d1515] bg-[#d97706] flex items-center justify-center text-3xl font-bold text-white">
+              <div className="w-24 h-24 rounded-full border-[3px] border-[#2d1515] bg-[#e84118] flex items-center justify-center text-3xl font-bold text-white">
                 {(session?.user?.name || "A")[0].toUpperCase()}
               </div>
             )}
           </div>
           <h2 className="text-xl font-bold text-white">{session?.user?.name || "Admin"}</h2>
           <p className="text-sm text-white/40 mt-0.5">{session?.user?.email}</p>
-          <span className="inline-block mt-2 text-[10px] px-3 py-1 rounded-full bg-[#d97706]/20 text-[#d97706] font-medium">
+          <span className="inline-block mt-2 text-[10px] px-3 py-1 rounded-full bg-[#e84118]/20 text-[#e84118] font-medium">
             Barbero Admin
           </span>
         </div>
@@ -108,7 +108,7 @@ export default function ProfilePage() {
           </div>
           <div className="bg-[#2d1515] rounded-xl p-4 border border-[#3d2020]">
             <p className="text-xs text-white/40">Ingresos del mes</p>
-            <p className="text-2xl font-bold text-[#d97706] mt-1">{formatCurrency(stats.monthRevenue)}</p>
+            <p className="text-2xl font-bold text-[#e84118] mt-1">{formatCurrency(stats.monthRevenue)}</p>
           </div>
           <div className="bg-[#2d1515] rounded-xl p-4 border border-[#3d2020]">
             <p className="text-xs text-white/40">Total clientes</p>
@@ -145,7 +145,7 @@ export default function ProfilePage() {
           </div>
           <button
             onClick={copyLink}
-            className="px-4 py-3 bg-[#d97706] text-white rounded-xl text-sm font-medium hover:bg-[#c0392b] transition flex-shrink-0"
+            className="px-4 py-3 bg-[#e84118] text-white rounded-xl text-sm font-medium hover:bg-[#c0392b] transition flex-shrink-0"
           >
             Copiar
           </button>
@@ -165,42 +165,42 @@ export default function ProfilePage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <a
             href="/appointments"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>📅</span>
             <span className="text-xs text-white/60">Ver citas</span>
           </a>
           <a
             href="/clients"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>👥</span>
             <span className="text-xs text-white/60">Clientes</span>
           </a>
           <a
             href="/services"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>✂️</span>
             <span className="text-xs text-white/60">Servicios</span>
           </a>
           <a
             href="/users"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>🔑</span>
             <span className="text-xs text-white/60">Usuarios</span>
           </a>
           <a
             href="/blocked-slots"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>🚫</span>
             <span className="text-xs text-white/60">Bloqueos</span>
           </a>
           <a
             href="/settings"
-            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#d97706]/50 transition"
+            className="flex flex-col items-center gap-2 p-4 bg-[#1a0a0a] border border-[#3d2020] rounded-xl hover:border-[#e84118]/50 transition"
           >
             <span className="text-2xl" suppressHydrationWarning>⚙️</span>
             <span className="text-xs text-white/60">Configuracion</span>

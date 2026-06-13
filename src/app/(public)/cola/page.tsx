@@ -121,16 +121,16 @@ export default function ColaPage() {
                 Peluqueándose ahora
               </p>
               {active ? (
-                <div className="bg-[#111] border border-[#d97706]/50 rounded-2xl p-5 shadow-lg shadow-[#d97706]/10">
+                <div className="bg-[#111] border border-[#e84118]/50 rounded-2xl p-5 shadow-lg shadow-[#e84118]/10">
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <p className="text-white font-bold text-lg">{active.clientName}</p>
                       <p className="text-white/50 text-sm">{active.serviceName}</p>
                     </div>
-                    <span className="flex items-center gap-1.5 bg-[#d97706]/20 text-[#d97706] text-xs px-2.5 py-1 rounded-full font-medium">
+                    <span className="flex items-center gap-1.5 bg-[#e84118]/20 text-[#e84118] text-xs px-2.5 py-1 rounded-full font-medium">
                       <span className="relative flex h-1.5 w-1.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#d97706] opacity-75" />
-                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#d97706]" />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#e84118]" />
                       </span>
                       En curso
                     </span>
@@ -139,13 +139,13 @@ export default function ColaPage() {
                   {/* Progress bar */}
                   <div className="h-2 bg-white/10 rounded-full overflow-hidden mb-2">
                     <div
-                      className="h-full bg-[#d97706] rounded-full transition-all duration-1000"
+                      className="h-full bg-[#e84118] rounded-full transition-all duration-1000"
                       style={{ width: `${getProgress(active, now)}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-[11px] text-white/30">
                     <span>{formatTime(active.date)}</span>
-                    <span className="text-[#d97706] font-medium">
+                    <span className="text-[#e84118] font-medium">
                       {getRemainingMin(active, now)} min restantes
                     </span>
                     <span>{formatTime(aptEndTime(active).toISOString())}</span>
@@ -191,7 +191,7 @@ export default function ColaPage() {
                         <div className="text-right flex-shrink-0">
                           <p className="text-white/70 text-xs font-medium">{formatTime(apt.date)}</p>
                           {i === 0 && (
-                            <p className="text-[#d97706] text-[10px]">
+                            <p className="text-[#e84118] text-[10px]">
                               ~{waitMin} min
                             </p>
                           )}

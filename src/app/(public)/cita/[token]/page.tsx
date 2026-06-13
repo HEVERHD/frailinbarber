@@ -91,7 +91,7 @@ export default function CitaPage() {
         <div className="flex flex-col items-center gap-4">
           <div className="relative w-12 h-12">
             <div className="absolute inset-0 rounded-full border-2 border-white/10" />
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#d97706] animate-spin" />
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#e84118] animate-spin" />
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-white/40 text-sm">Mi Barbería</span>
@@ -149,11 +149,11 @@ export default function CitaPage() {
 
         {/* Appointment details card */}
         <div className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-[#d97706] to-[#f0932b]" />
+          <div className="h-2 bg-gradient-to-r from-[#e84118] to-[#f0932b]" />
           <div className="p-6 space-y-4">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#d97706]/15 flex items-center justify-center flex-shrink-0">
-                <Scissors size={20} className="text-[#d97706]" />
+              <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
+                <Scissors size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Servicio</p>
@@ -162,8 +162,8 @@ export default function CitaPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#d97706]/15 flex items-center justify-center flex-shrink-0">
-                <CalendarDays size={20} className="text-[#d97706]" />
+              <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
+                <CalendarDays size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Fecha</p>
@@ -172,8 +172,8 @@ export default function CitaPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#d97706]/15 flex items-center justify-center flex-shrink-0">
-                <Clock size={20} className="text-[#d97706]" />
+              <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
+                <Clock size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Hora</p>
@@ -182,8 +182,8 @@ export default function CitaPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-[#d97706]/15 flex items-center justify-center flex-shrink-0">
-                <DollarSign size={20} className="text-[#d97706]" />
+              <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
+                <DollarSign size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Precio</p>
@@ -240,7 +240,7 @@ export default function CitaPage() {
         <div className="text-center mt-6">
           <a
             href="/booking"
-            className="text-sm text-[#d97706] hover:underline"
+            className="text-sm text-[#e84118] hover:underline"
           >
             Agendar una nueva cita
           </a>
