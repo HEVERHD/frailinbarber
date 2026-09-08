@@ -26,8 +26,11 @@ async function getServices() {
 }
 
 async function getSettings() {
-  // Prefer the ADMIN's settings for the public home page (shop name, city, address, phone)
+  // Public home page shows the shop info configured on a barber's profile (shop name,
+  // city, address, phone) — that's where it's actually entered day to day. Fall back to
+  // the ADMIN's own settings, then any settings, for single-account setups.
   return (
+    await prisma.barberSettings.findFirst({ where: { user: { role: "BARBER" } } }) ??
     await prisma.barberSettings.findFirst({ where: { user: { role: "ADMIN" } } }) ??
     await prisma.barberSettings.findFirst()
   )

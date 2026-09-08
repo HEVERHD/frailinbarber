@@ -13,9 +13,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const barberId = searchParams.get("barberId")
 
-  // Public access: return admin's settings for shop name/city (used by booking + home page)
+  // Public access: shop name/city as configured on a barber's profile (used by booking +
+  // home page) — falls back to the ADMIN's own settings for single-account setups
   if (!session) {
     const settings =
+      (await prisma.barberSettings.findFirst({ where: { user: { role: "BARBER" } } })) ??
       (await prisma.barberSettings.findFirst({ where: { user: { role: "ADMIN" } } })) ??
       (await prisma.barberSettings.findFirst())
     return NextResponse.json(settings)
