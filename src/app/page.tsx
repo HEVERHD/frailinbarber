@@ -10,11 +10,11 @@ import {
   Scissors,
   MapPin,
   Phone,
-  MessageCircle,
+  ChatCircle as MessageCircle,
   ArrowUpRight,
   CheckCircle,
-  Zap,
-} from "lucide-react"
+  Lightning as Zap,
+} from "@phosphor-icons/react/dist/ssr"
 
 export const dynamic = "force-dynamic"
 
@@ -115,7 +115,7 @@ export default async function Home() {
               className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white transition font-medium group"
             >
               Ver todos los servicios
-              <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <ArrowUpRight weight="duotone" size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </Link>
           </div>
 
@@ -141,7 +141,7 @@ export default async function Home() {
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-5 ${
                     i === 1 ? "bg-[#e84118]/20" : "bg-white/5"
                   }`}>
-                    <Scissors size={18} className={i === 1 ? "text-[#e84118]" : "text-white/50"} />
+                    <Scissors weight="duotone" size={18} className={i === 1 ? "text-[#e84118]" : "text-white/50"} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
                   {service.description && (
@@ -162,7 +162,7 @@ export default async function Home() {
                     }`}
                   >
                     Reservar
-                    <ArrowUpRight size={12} />
+                    <ArrowUpRight weight="duotone" size={12} />
                   </Link>
                 </div>
               </div>
@@ -189,19 +189,19 @@ export default async function Home() {
                 step: "01",
                 title: "Elige tu servicio",
                 desc: "Selecciona el corte que buscas: sencillo, con barba o corte de niño.",
-                icon: <Scissors size={22} />,
+                icon: <Scissors weight="duotone" size={22} />,
               },
               {
                 step: "02",
                 title: "Escoge fecha y hora",
                 desc: "Mira los horarios disponibles en tiempo real y reserva el que te quede.",
-                icon: <Calendar size={22} />,
+                icon: <Calendar weight="duotone" size={22} />,
               },
               {
                 step: "03",
                 title: "Confirmacion al instante",
                 desc: "Recibes confirmacion por WhatsApp y recordatorio 1 hora antes de tu cita.",
-                icon: <Zap size={22} />,
+                icon: <Zap weight="duotone" size={22} />,
               },
             ].map((item, i) => (
               <div key={item.step} className="relative group">
@@ -242,22 +242,22 @@ export default async function Home() {
               <div className="space-y-7">
                 {[
                   {
-                    icon: <MessageCircle size={20} />,
+                    icon: <MessageCircle weight="duotone" size={20} />,
                     title: "Recordatorio por WhatsApp",
                     desc: "Te avisamos 1 hora antes para que nunca pierdas tu cita.",
                   },
                   {
-                    icon: <Clock size={20} />,
+                    icon: <Clock weight="duotone" size={20} />,
                     title: "Cero esperas",
                     desc: "Llega a tu hora y pasa directo al sillón. Tu tiempo vale.",
                   },
                   {
-                    icon: <Calendar size={20} />,
+                    icon: <Calendar weight="duotone" size={20} />,
                     title: "Agenda 24/7",
                     desc: "Reserva desde tu celular en cualquier momento, sin llamadas.",
                   },
                   {
-                    icon: <CheckCircle size={20} />,
+                    icon: <CheckCircle weight="duotone" size={20} />,
                     title: "Atencion personalizada",
                     desc: "Cada corte es único, adaptado a tu estilo y preferencias.",
                   },
@@ -294,7 +294,7 @@ export default async function Home() {
                   </div>
                   <div className="divide-y divide-white/5">
                     <div className="p-5 flex items-center gap-4">
-                      <Clock size={16} className="text-[#e84118] flex-shrink-0" />
+                      <Clock weight="duotone" size={16} className="text-[#e84118] flex-shrink-0" />
                       <div>
                         <p className="text-xs text-white/30 mb-0.5">Horario de atención</p>
                         <p className="text-sm font-bold text-white">
@@ -303,14 +303,14 @@ export default async function Home() {
                       </div>
                     </div>
                     <div className="p-5 flex items-center gap-4">
-                      <Scissors size={16} className="text-[#e84118] flex-shrink-0" />
+                      <Scissors weight="duotone" size={16} className="text-[#e84118] flex-shrink-0" />
                       <div>
                         <p className="text-xs text-white/30 mb-0.5">Servicios disponibles</p>
                         <p className="text-sm font-bold text-white">{services.length} servicios</p>
                       </div>
                     </div>
                     <div className="p-5 flex items-center gap-4">
-                      <Zap size={16} className="text-[#e84118] flex-shrink-0" />
+                      <Zap weight="duotone" size={16} className="text-[#e84118] flex-shrink-0" />
                       <div>
                         <p className="text-xs text-white/30 mb-0.5">Reservas</p>
                         <p className="text-sm font-bold text-[#e84118]">Online 24/7</p>
@@ -318,7 +318,7 @@ export default async function Home() {
                     </div>
                     {settings?.phone && (
                       <div className="p-5 flex items-center gap-4">
-                        <Phone size={16} className="text-[#e84118] flex-shrink-0" />
+                        <Phone weight="duotone" size={16} className="text-[#e84118] flex-shrink-0" />
                         <div>
                           <p className="text-xs text-white/30 mb-0.5">WhatsApp</p>
                           <a
@@ -339,7 +339,7 @@ export default async function Home() {
                       className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#e84118] to-[#c0392b] text-white font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-[#e84118]/25 transition-all text-sm"
                     >
                       Agendar mi cita
-                      <ArrowUpRight size={15} />
+                      <ArrowUpRight weight="duotone" size={15} />
                     </Link>
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export default async function Home() {
             className="inline-flex items-center gap-3 bg-gradient-to-r from-[#e84118] to-[#c0392b] text-white font-black px-10 py-5 rounded-2xl text-lg hover:shadow-2xl hover:shadow-[#e84118]/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             Agendar mi cita
-            <ArrowUpRight size={20} />
+            <ArrowUpRight weight="duotone" size={20} />
           </Link>
         </div>
       </section>
@@ -429,7 +429,7 @@ export default async function Home() {
                 <div className="divide-y divide-white/8 flex-1">
                   <div className="p-6 flex gap-4 items-start">
                     <div className="w-10 h-10 rounded-xl bg-[#e84118]/10 flex items-center justify-center flex-shrink-0">
-                      <MapPin size={18} className="text-[#e84118]" />
+                      <MapPin weight="duotone" size={18} className="text-[#e84118]" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white/30 uppercase tracking-wider mb-1.5">Direccion</p>
@@ -438,7 +438,7 @@ export default async function Home() {
                   </div>
                   <div className="p-6 flex gap-4 items-start">
                     <div className="w-10 h-10 rounded-xl bg-[#e84118]/10 flex items-center justify-center flex-shrink-0">
-                      <Clock size={18} className="text-[#e84118]" />
+                      <Clock weight="duotone" size={18} className="text-[#e84118]" />
                     </div>
                     <div>
                       <p className="text-xs font-bold text-white/30 uppercase tracking-wider mb-1.5">Horario</p>
@@ -450,7 +450,7 @@ export default async function Home() {
                   {settings.phone && (
                     <div className="p-6 flex gap-4 items-start">
                       <div className="w-10 h-10 rounded-xl bg-[#e84118]/10 flex items-center justify-center flex-shrink-0">
-                        <Phone size={18} className="text-[#e84118]" />
+                        <Phone weight="duotone" size={18} className="text-[#e84118]" />
                       </div>
                       <div>
                         <p className="text-xs font-bold text-white/30 uppercase tracking-wider mb-1.5">WhatsApp</p>
@@ -474,7 +474,7 @@ export default async function Home() {
                     className="w-full flex items-center justify-center gap-2 bg-[#e84118] text-white font-bold py-3.5 rounded-xl hover:bg-[#c0392b] transition-all text-sm"
                   >
                     Abrir en Google Maps
-                    <ArrowUpRight size={14} />
+                    <ArrowUpRight weight="duotone" size={14} />
                   </a>
                 </div>
               </div>

@@ -6,6 +6,12 @@ import { sendWhatsAppMessage, sendWhatsAppTemplateWithSMSFallback, buildConfirma
 import { formatDate, formatTime, formatCurrency, parseColombia, getColombiaTime, getColombiaDateStr, getColombiaDayOfWeek, to12Hour } from "@/lib/utils"
 import { sendPushToBarber } from "@/lib/push"
 import { autoScheduleFromWaitlist } from "@/lib/waitlist"
+import {
+  createAppointmentSchema,
+  rescheduleAppointmentSchema,
+  updateAppointmentStatusSchema,
+  zodErrorMessage,
+} from "@/lib/validation"
 
 export const dynamic = "force-dynamic"
 
@@ -78,11 +84,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-
-  if (!body.barberId) {
-    return NextResponse.json({ error: "barberId es requerido" }, { status: 400 })
+  const json = await req.json().catch(() => null)
+  const parsed = createAppointmentSchema.safeParse(json)
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 })
   }
+  const body = parsed.data
 
   // Find or create client user
   let user = await prisma.user.findFirst({
@@ -357,10 +364,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
-  const body = await req.json()
+  const json = await req.json().catch(() => null)
 
   // ── REAGENDAR ──────────────────────────────────────────────
-  if (body.action === "reschedule") {
+  if (json?.action === "reschedule") {
+    const parsedReschedule = rescheduleAppointmentSchema.safeParse(json)
+    if (!parsedReschedule.success) {
+      return NextResponse.json({ error: zodErrorMessage(parsedReschedule.error) }, { status: 400 })
+    }
+    const body = parsedReschedule.data
+
     const existing = await prisma.appointment.findUnique({
       where: { id: body.id },
       include: { service: true, user: true },
@@ -470,6 +483,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(updated)
   }
   // ──────────────────────────────────────────────────────────
+
+  const parsedStatus = updateAppointmentStatusSchema.safeParse(json)
+  if (!parsedStatus.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsedStatus.error) }, { status: 400 })
+  }
+  const body = parsedStatus.data
 
   const appointment = await prisma.appointment.update({
     where: { id: body.id },

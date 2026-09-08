@@ -91,17 +91,21 @@ export default function LiveQueueBadge() {
   return (
     <Link
       href="/booking"
-      className={`inline-block text-left w-full max-w-xs rounded-2xl overflow-hidden transition-all group ${
+      className={`relative inline-block text-left w-full max-w-xs rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl shadow-black/50 transition-all group ${
         almostBusy
-          ? "bg-amber-500/10 border border-amber-500/40 hover:bg-amber-500/15 hover:border-amber-500/60"
-          : "bg-white/5 border border-white/10 hover:border-[#e84118]/30 hover:bg-white/8"
+          ? "bg-amber-500/15 border border-amber-500/40 hover:bg-amber-500/20 hover:border-amber-500/60"
+          : "bg-black/50 border border-white/15 hover:border-[#e84118]/40 hover:bg-black/60"
       }`}
     >
+      {/* Corner accents — echoes the HUD frame around the hero photo */}
+      <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-[#e84118]/50 rounded-tl-2xl pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-[#e84118]/50 rounded-br-2xl pointer-events-none" />
+
       {/* Estado principal */}
       {active ? (
         <div className="border-b border-white/5">
           {/* Header row */}
-          <div className="flex items-center gap-3 px-4 pt-3 pb-2">
+          <div className="flex items-center gap-3 px-5 pt-4 pb-2.5">
             <span className="relative flex h-2 w-2 flex-shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#e84118] opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-[#e84118]" />
@@ -118,7 +122,7 @@ export default function LiveQueueBadge() {
           </div>
 
           {/* Progress bar */}
-          <div className="px-4 pb-3">
+          <div className="px-5 pb-4">
             <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className="absolute inset-y-0 left-0 rounded-full"
@@ -138,7 +142,7 @@ export default function LiveQueueBadge() {
           </div>
         </div>
       ) : almostBusy ? (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-amber-500/20">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-amber-500/20">
           <span className="text-lg flex-shrink-0">⚡</span>
           <div className="flex-1 min-w-0">
             <p className="text-amber-300 text-sm font-bold leading-tight">
@@ -148,7 +152,7 @@ export default function LiveQueueBadge() {
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
           <span className="relative flex h-2 w-2 flex-shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
@@ -159,7 +163,7 @@ export default function LiveQueueBadge() {
 
       {/* Cola de espera */}
       {waiting.length > 0 && (
-        <div className="px-4 py-2 space-y-1.5">
+        <div className="px-5 py-2.5 space-y-1.5">
           {waiting.slice(0, 3).map((apt, i) => (
             <div key={apt.id} className="flex items-center gap-2.5">
               <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold flex-shrink-0">
@@ -178,7 +182,7 @@ export default function LiveQueueBadge() {
       )}
 
       {/* Footer */}
-      <div className={`px-4 py-2 border-t flex items-center justify-between ${almostBusy ? "border-amber-500/20" : "border-white/5"}`}>
+      <div className={`px-5 py-2.5 border-t flex items-center justify-between ${almostBusy ? "border-amber-500/20" : "border-white/5"}`}>
         <p className={`text-[10px] ${almostBusy ? "text-amber-400/50" : "text-white/20"}`}>
           {almostBusy ? "Toca para agendar ahora →" : "Cola en vivo · actualiza cada 30s"}
         </p>

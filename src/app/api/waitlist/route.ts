@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { sendWhatsAppTemplateWithSMSFallback } from "@/lib/twilio"
+import { createWaitlistSchema, updateWaitlistStatusSchema, zodErrorMessage } from "@/lib/validation"
 
 export const dynamic = "force-dynamic"
 
@@ -30,11 +31,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { date, name, phone, serviceId } = body
+  const json = await req.json().catch(() => null)
+  const parsed = createWaitlistSchema.safeParse(json)
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 })
+  }
+  const { date, name, phone, serviceId } = parsed.data
 
-  if (!date || !name || !phone || !serviceId) {
-    return NextResponse.json({ error: "Todos los campos son requeridos" }, { status: 400 })
+  const service = await prisma.service.findUnique({ where: { id: serviceId } })
+  if (!service) {
+    return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 })
   }
 
   // Check if already on waitlist for this date+phone
@@ -60,12 +66,12 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 })
   }
 
-  const body = await req.json()
-  const { id, status } = body
-
-  if (!id || !status) {
-    return NextResponse.json({ error: "ID y status requeridos" }, { status: 400 })
+  const json = await req.json().catch(() => null)
+  const parsed = updateWaitlistStatusSchema.safeParse(json)
+  if (!parsed.success) {
+    return NextResponse.json({ error: zodErrorMessage(parsed.error) }, { status: 400 })
   }
+  const { id, status } = parsed.data
 
   const entry = await prisma.waitlistEntry.update({
     where: { id },

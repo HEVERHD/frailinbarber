@@ -16,13 +16,16 @@ export async function POST(req: NextRequest) {
   const params: Record<string, string> = {}
   new URLSearchParams(rawBody).forEach((value, key) => { params[key] = value })
 
-  if (authToken && appUrl) {
-    const webhookUrl = `${appUrl}/api/twilio/webhook`
-    const valid = twilio.validateRequest(authToken, signature, webhookUrl, params)
-    if (!valid) {
-      console.warn("[Webhook] Firma inválida — petición ignorada")
-      return new NextResponse("Unauthorized", { status: 403 })
-    }
+  if (!authToken || !appUrl) {
+    console.error("[Webhook] TWILIO_AUTH_TOKEN o NEXT_PUBLIC_APP_URL/NEXTAUTH_URL no configurados — rechazando petición")
+    return new NextResponse("Unauthorized", { status: 403 })
+  }
+
+  const webhookUrl = `${appUrl}/api/twilio/webhook`
+  const valid = twilio.validateRequest(authToken, signature, webhookUrl, params)
+  if (!valid) {
+    console.warn("[Webhook] Firma inválida — petición ignorada")
+    return new NextResponse("Unauthorized", { status: 403 })
   }
 
   // ── Leer campos del mensaje entrante ──────────────────────

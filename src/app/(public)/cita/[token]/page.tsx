@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { CalendarDays, Clock, Scissors, DollarSign, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import {
+  CalendarDots as CalendarDays,
+  Clock,
+  Scissors,
+  CurrencyDollar as DollarSign,
+  CheckCircle,
+  XCircle,
+  WarningCircle as AlertCircle,
+} from "@phosphor-icons/react"
 
 type AppointmentData = {
   id: string
@@ -105,7 +113,7 @@ export default function CitaPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a] flex items-center justify-center p-4">
         <div className="bg-[#111] border border-white/10 rounded-2xl p-8 text-center max-w-md w-full">
-          <AlertCircle size={48} className="mx-auto text-red-400 mb-4" />
+          <AlertCircle weight="duotone" size={48} className="mx-auto text-red-400 mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Cita no encontrada</h1>
           <p className="text-white/40">El link puede ser inválido o la cita ya no existe.</p>
         </div>
@@ -153,7 +161,7 @@ export default function CitaPage() {
           <div className="p-6 space-y-4">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
-                <Scissors size={20} className="text-[#e84118]" />
+                <Scissors weight="duotone" size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Servicio</p>
@@ -163,7 +171,7 @@ export default function CitaPage() {
 
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
-                <CalendarDays size={20} className="text-[#e84118]" />
+                <CalendarDays weight="duotone" size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Fecha</p>
@@ -173,7 +181,7 @@ export default function CitaPage() {
 
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
-                <Clock size={20} className="text-[#e84118]" />
+                <Clock weight="duotone" size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Hora</p>
@@ -183,7 +191,7 @@ export default function CitaPage() {
 
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-[#e84118]/15 flex items-center justify-center flex-shrink-0">
-                <DollarSign size={20} className="text-[#e84118]" />
+                <DollarSign weight="duotone" size={20} className="text-[#e84118]" />
               </div>
               <div>
                 <p className="text-xs text-white/40">Precio</p>
@@ -229,7 +237,7 @@ export default function CitaPage() {
           {cancelled && (
             <div className="px-6 pb-6">
               <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
-                <XCircle size={24} className="mx-auto text-red-400 mb-2" />
+                <XCircle weight="duotone" size={24} className="mx-auto text-red-400 mb-2" />
                 <p className="text-sm text-red-400 font-medium">Tu cita ha sido cancelada</p>
               </div>
             </div>

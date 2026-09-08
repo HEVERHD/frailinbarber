@@ -4,7 +4,15 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, Clock, Scissors, ChevronLeft, ChevronRight, Smartphone, X } from "lucide-react"
+import {
+  ArrowLeft,
+  Clock,
+  Scissors,
+  CaretLeft as ChevronLeft,
+  CaretRight as ChevronRight,
+  DeviceMobile as Smartphone,
+  X,
+} from "@phosphor-icons/react"
 
 type Barber = {
   id: string
@@ -89,6 +97,7 @@ export default function BookingPage() {
   const [isIos, setIsIos] = useState(false)
   const [weekAvailability, setWeekAvailability] = useState<Record<string, "available" | "partial" | "full" | "off">>({})
   const [loadingAvailability, setLoadingAvailability] = useState(false)
+  const [dateManuallyPicked, setDateManuallyPicked] = useState(false)
 
   // ── Saved client info (localStorage) ──────────────────────
   useEffect(() => {
@@ -193,6 +202,27 @@ export default function BookingPage() {
       .finally(() => setLoadingAvailability(false))
   }, [step, weekStart, selectedService?.id, selectedBarber?.id])
 
+  // If today (auto-selected) turns out to have no openings, jump to the first
+  // available day this week instead of leaving the visitor stuck on a dead end
+  useEffect(() => {
+    if (dateManuallyPicked || loadingAvailability) return
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayDateStr = toLocalDateStr(today)
+    if (selectedDate !== todayDateStr) return
+    if (getWeekStart(today).getTime() !== weekStart.getTime()) return
+    const todayStatus = weekAvailability[todayDateStr]
+    if (todayStatus !== "full" && todayStatus !== "off") return
+    const nextAvailable = getWeekDays(weekStart)
+      .map(toLocalDateStr)
+      .find(
+        (dateStr) =>
+          dateStr > todayDateStr &&
+          (weekAvailability[dateStr] === "available" || weekAvailability[dateStr] === "partial")
+      )
+    if (nextAvailable) setSelectedDate(nextAvailable)
+  }, [weekAvailability, dateManuallyPicked, loadingAvailability, selectedDate, weekStart])
+
   useEffect(() => {
     if (selectedDate && selectedService && selectedBarber) {
       setLoading(true)
@@ -294,6 +324,7 @@ export default function BookingPage() {
     const d = new Date(date)
     d.setHours(0, 0, 0, 0)
     if (d.getTime() < todayLocal.getTime()) return
+    setDateManuallyPicked(true)
     setSelectedDate(toLocalDateStr(d))
     setSelectedTime("")
   }
@@ -356,7 +387,7 @@ export default function BookingPage() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-[#e84118]/15 rounded-xl flex items-center justify-center">
-                  <Smartphone size={22} className="text-[#e84118]" />
+                  <Smartphone weight="duotone" size={22} className="text-[#e84118]" />
                 </div>
                 <div>
                   <p className="font-bold text-white text-sm">Instala la app</p>
@@ -364,7 +395,7 @@ export default function BookingPage() {
                 </div>
               </div>
               <button onClick={dismissPwa} className="p-1.5 text-white/30 hover:text-white transition">
-                <X size={16} />
+                <X weight="duotone" size={16} />
               </button>
             </div>
 
@@ -389,7 +420,7 @@ export default function BookingPage() {
                 onClick={handlePwaInstall}
                 className="w-full py-3.5 rounded-xl bg-[#e84118] text-white font-bold text-sm hover:bg-[#c0392b] active:scale-95 transition-all mb-3 flex items-center justify-center gap-2"
               >
-                <Smartphone size={16} />
+                <Smartphone weight="duotone" size={16} />
                 Instalar app gratis
               </button>
             )}
@@ -414,7 +445,7 @@ export default function BookingPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
           <Link href="/" className="flex items-center gap-1.5 text-white/30 hover:text-white/70 transition text-sm">
-            <ArrowLeft size={15} />
+            <ArrowLeft weight="duotone" size={15} />
             <span>Inicio</span>
           </Link>
           <div className="flex items-center gap-2.5">
@@ -478,7 +509,7 @@ export default function BookingPage() {
                       {barber.specialty && <p className="text-sm text-white/40 mt-0.5">{barber.specialty}</p>}
                     </div>
                     <div className="ml-auto w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#e84118] flex items-center justify-center transition-all">
-                      <ChevronRight size={14} className="text-white/40 group-hover:text-white transition" />
+                      <ChevronRight weight="duotone" size={14} className="text-white/40 group-hover:text-white transition" />
                     </div>
                   </div>
                 </button>
@@ -508,21 +539,21 @@ export default function BookingPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <Scissors size={13} className="text-[#e84118]/50 group-hover:text-[#e84118] transition-colors flex-shrink-0" />
+                        <Scissors weight="duotone" size={16} className="text-[#e84118]/70 group-hover:text-[#e84118] transition-colors flex-shrink-0" />
                         <p className="font-bold text-white text-base">{service.name}</p>
                       </div>
                       {service.description && (
                         <p className="text-sm text-white/40 mt-1 pl-5">{service.description}</p>
                       )}
                       <div className="flex items-center gap-1.5 mt-2.5 pl-5">
-                        <Clock size={12} className="text-white/25" />
+                        <Clock weight="duotone" size={12} className="text-white/25" />
                         <span className="text-xs text-white/30">{service.duration} min</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className="font-black text-[#e84118] text-lg">{formatPrice(service.price)}</span>
                       <span className="text-[10px] text-white/0 group-hover:text-white/30 transition-colors duration-200 flex items-center gap-0.5">
-                        Elegir <ChevronRight size={10} />
+                        Elegir <ChevronRight weight="duotone" size={10} />
                       </span>
                     </div>
                   </div>
@@ -531,7 +562,7 @@ export default function BookingPage() {
             </div>
             {barbers.length > 1 && (
               <button onClick={() => setStep("barber")} className="w-full mt-5 py-3.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:border-white/20 transition text-sm font-medium flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Atrás
+                <ArrowLeft weight="duotone" size={14} /> Atrás
               </button>
             )}
           </div>
@@ -554,11 +585,11 @@ export default function BookingPage() {
                 disabled={weekStart.getTime() <= currentWeekStart.getTime()}
                 className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 disabled:opacity-20 transition"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft weight="duotone" size={16} />
               </button>
               <span className="text-sm font-semibold capitalize text-white/60">{monthLabel}</span>
               <button onClick={nextWeek} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition">
-                <ChevronRight size={16} />
+                <ChevronRight weight="duotone" size={16} />
               </button>
             </div>
 
@@ -653,7 +684,7 @@ export default function BookingPage() {
                     {error && <p className="text-red-400 text-xs">{error}</p>}
                   </div>
                 ) : (
-                  <button onClick={() => setShowWaitlist(true)} className="w-full py-3.5 rounded-xl border border-[#e84118]/40 text-[#e84118] font-medium hover:bg-[#e84118]/10 transition text-sm">
+                  <button onClick={() => setShowWaitlist(true)} className="w-full py-3.5 rounded-xl bg-[#e84118] text-white font-bold hover:bg-[#c0392b] hover:shadow-lg hover:shadow-[#e84118]/25 transition-all text-sm">
                     Unirme a lista de espera
                   </button>
                 )}
@@ -703,7 +734,7 @@ export default function BookingPage() {
             {/* Nav */}
             <div className="flex gap-3 mt-8">
               <button onClick={() => setStep("service")} className="flex-1 py-3.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:border-white/20 transition text-sm font-medium flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Atrás
+                <ArrowLeft weight="duotone" size={14} /> Atrás
               </button>
             </div>
           </div>
@@ -770,7 +801,7 @@ export default function BookingPage() {
             </div>
             <div className="flex gap-3 mt-8">
               <button onClick={() => setStep("datetime")} className="flex-1 py-3.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:border-white/20 transition text-sm font-medium flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Atrás
+                <ArrowLeft weight="duotone" size={14} /> Atrás
               </button>
               <button
                 onClick={() => clientName && clientPhone && setStep("confirm")}
@@ -796,7 +827,7 @@ export default function BookingPage() {
               {/* Header with gradient */}
               <div className="px-5 py-4 border-b border-white/5 flex items-center gap-3 bg-gradient-to-r from-[#e84118]/10 to-transparent">
                 <div className="w-9 h-9 bg-[#e84118]/20 rounded-xl flex items-center justify-center ring-1 ring-[#e84118]/20">
-                  <Scissors size={16} className="text-[#e84118]" />
+                  <Scissors weight="duotone" size={16} className="text-[#e84118]" />
                 </div>
                 <div>
                   <p className="font-bold text-white leading-tight">{selectedService?.name}</p>
@@ -845,7 +876,7 @@ export default function BookingPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep("info")} className="flex-1 py-3.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:border-white/20 transition text-sm font-medium flex items-center justify-center gap-2">
-                <ArrowLeft size={14} /> Atrás
+                <ArrowLeft weight="duotone" size={14} /> Atrás
               </button>
               <button
                 onClick={handleSubmit}

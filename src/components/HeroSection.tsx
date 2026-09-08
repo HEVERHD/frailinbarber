@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowUpRight, ChevronDown } from "lucide-react"
+import { ArrowUpRight, CaretDown as ChevronDown } from "@phosphor-icons/react"
 import LiveQueueBadge from "@/components/LiveQueueBadge"
 
 const PHRASES = [
@@ -201,6 +201,9 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi BarberÃ
         {/* â”€â”€ Background â”€â”€ */}
         {/* Gradient vignette so hero text stays readable over parallax bg */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/55 pointer-events-none" />
+        {/* Extra directional darkening so the headline stays readable regardless of what's behind it */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent pointer-events-none hidden lg:block" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent pointer-events-none lg:hidden" />
         <div className="absolute inset-0 fs-dot-grid pointer-events-none" />
         <div className="fs-orb-1 absolute -top-[15%] -left-[5%]  w-[700px] h-[700px] rounded-full bg-[#e84118]/6 blur-[140px] pointer-events-none" />
         <div className="fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full bg-[#e84118]/4 blur-[110px] pointer-events-none" />
@@ -222,7 +225,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi BarberÃ
               style={{ animation: "fs-scroll-dot 1.8s ease-in-out infinite" }}
             />
           </div>
-          <ChevronDown size={12} className="text-white/15" />
+          <ChevronDown weight="duotone" size={12} className="text-white/15" />
         </div>
 
         {/* Top / bottom fades */}
@@ -378,13 +381,14 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi BarberÃ
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#e84118] to-[#c0392b] text-white font-bold px-8 py-4 rounded-2xl text-base hover:shadow-2xl hover:shadow-[#e84118]/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   Agendar mi cita
-                  <ArrowUpRight size={18} />
+                  <ArrowUpRight weight="duotone" size={18} />
                 </Link>
                 <a
                   href="#servicios"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/10 text-white/50 font-medium px-8 py-4 rounded-2xl text-base hover:bg-white/5 hover:text-white hover:border-[#e84118]/30 transition-all"
+                  className="group/services w-full sm:w-auto inline-flex items-center justify-center gap-1.5 text-white/45 font-medium px-4 py-4 text-base hover:text-white transition-colors"
                 >
                   Ver servicios
+                  <ChevronDown weight="duotone" size={16} className="group-hover/services:translate-y-0.5 transition-transform" />
                 </a>
               </div>
 

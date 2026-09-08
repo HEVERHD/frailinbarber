@@ -4,13 +4,15 @@ import { sendWhatsAppMessage, sendWhatsAppTemplateWithSMSFallback } from "@/lib/
 import { formatDate, formatTime } from "@/lib/utils"
 import { sendPushToBarber } from "@/lib/push"
 import { autoScheduleFromWaitlist } from "@/lib/waitlist"
+import { cancelAppointmentSchema } from "@/lib/validation"
 
 export async function POST(req: NextRequest) {
-  const { token } = await req.json()
-
-  if (!token) {
+  const json = await req.json().catch(() => null)
+  const parsed = cancelAppointmentSchema.safeParse(json)
+  if (!parsed.success) {
     return NextResponse.json({ error: "Token requerido" }, { status: 400 })
   }
+  const { token } = parsed.data
 
   const appointment = await prisma.appointment.findUnique({
     where: { token },
