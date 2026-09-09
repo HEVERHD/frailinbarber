@@ -508,7 +508,7 @@ export default async function Home() {
       )}
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/10 pt-14 pb-8 bg-[#080808]">
+      <footer className="border-t border-white/10 pt-14 pb-40 lg:pb-16 bg-[#080808]">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-start gap-10 mb-10">
             <div>
@@ -543,13 +543,15 @@ export default async function Home() {
           </div>
 
           <div className="border-t border-white/5 mt-6 pt-4 text-center">
-            <p className="text-[11px] text-white/15">
-              Sitio desarrollado por Hevert David ·{" "}
+            <p className="text-[11px] text-white/40 leading-relaxed">
+              Sitio desarrollado por Hevert David — Analista Programador Frontend
+              <br className="sm:hidden" />
+              {" "}·{" "}
               <a
                 href="https://wa.me/573006176641"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/25 hover:text-[#e84118] transition"
+                className="text-white/60 hover:text-[#e84118] transition font-medium"
               >
                 ¿Quieres una app así? Escríbeme
               </a>
