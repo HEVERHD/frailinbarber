@@ -5,6 +5,7 @@ import { to12Hour } from "@/lib/utils"
 import HeroSection from "@/components/HeroSection"
 import ParallaxBg from "@/components/ParallaxBg"
 import StickyBookBar from "@/components/StickyBookBar"
+import WhatsAppFloatButton from "@/components/WhatsAppFloatButton"
 import {
   Clock,
   Calendar,
@@ -71,6 +72,9 @@ export default async function Home() {
 
       {/* Persistent booking CTA on mobile once the visitor scrolls past the hero */}
       <StickyBookBar />
+
+      {/* Direct WhatsApp contact — always reachable, doesn't require going through /booking */}
+      <WhatsAppFloatButton phone={settings?.phone} />
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">
@@ -536,6 +540,20 @@ export default async function Home() {
               &copy; {new Date().getFullYear()} {shopName}. Todos los derechos reservados.
             </p>
             <p className="text-xs text-white/20">Tu look habla antes que tú.</p>
+          </div>
+
+          <div className="border-t border-white/5 mt-6 pt-4 text-center">
+            <p className="text-[11px] text-white/15">
+              Sitio desarrollado por Hevert David ·{" "}
+              <a
+                href="https://wa.me/573006176641"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/25 hover:text-[#e84118] transition"
+              >
+                ¿Quieres una app así? Escríbeme
+              </a>
+            </p>
           </div>
         </div>
       </footer>
