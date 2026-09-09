@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { to12Hour } from "@/lib/utils"
 import HeroSection from "@/components/HeroSection"
 import ParallaxBg from "@/components/ParallaxBg"
+import StickyBookBar from "@/components/StickyBookBar"
 import {
   Clock,
   Calendar,
@@ -67,6 +68,9 @@ export default async function Home() {
 
       {/* Parallax barbershop background */}
       <ParallaxBg />
+
+      {/* Persistent booking CTA on mobile once the visitor scrolls past the hero */}
+      <StickyBookBar />
 
       {/* ── Nav ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">

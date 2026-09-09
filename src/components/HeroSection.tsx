@@ -356,7 +356,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi BarberÃ
               </div>
 
               {/* Headline â€” staggered lines */}
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[84px] font-black leading-[0.88] tracking-tight mb-6 lg:mb-8">
+              <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-[84px] font-black leading-[0.88] tracking-tight mb-6 lg:mb-8">
                 <span className="fs-t1 block">Agenda</span>
                 <span className="fs-t2 block">tu cita</span>
                 {/* Typewriter line */}
