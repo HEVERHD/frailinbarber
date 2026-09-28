@@ -3,14 +3,13 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/shared/providers"
 import { PWARegister } from "@/components/shared/pwa-register"
+import NoiseOverlay from "@/components/NoiseOverlay"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: "#e84118",
 }
 
@@ -67,6 +66,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>{children}</Providers>
         <PWARegister />
+        <NoiseOverlay />
       </body>
     </html>
   )

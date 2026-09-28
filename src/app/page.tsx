@@ -6,6 +6,9 @@ import HeroSection from "@/components/HeroSection"
 import ParallaxBg from "@/components/ParallaxBg"
 import StickyBookBar from "@/components/StickyBookBar"
 import WhatsAppFloatButton from "@/components/WhatsAppFloatButton"
+import SiteNav from "@/components/SiteNav"
+import Reveal from "@/components/Reveal"
+import Testimonials from "@/components/Testimonials"
 import {
   Clock,
   Calendar,
@@ -46,6 +49,25 @@ async function getGallery() {
   })
 }
 
+async function getPopularServiceId(): Promise<string | null> {
+  const monthStart = new Date()
+  monthStart.setDate(1)
+  monthStart.setHours(0, 0, 0, 0)
+
+  const grouped = await prisma.appointment.groupBy({
+    by: ["serviceId"],
+    where: {
+      status: { in: ["CONFIRMED", "COMPLETED"] },
+      date: { gte: monthStart },
+    },
+    _count: { serviceId: true },
+    orderBy: { _count: { serviceId: "desc" } },
+    take: 1,
+  })
+
+  return grouped[0]?.serviceId ?? null
+}
+
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -55,10 +77,11 @@ const formatPrice = (price: number) =>
   }).format(price)
 
 export default async function Home() {
-  const [services, settings, gallery] = await Promise.all([
+  const [services, settings, gallery, popularServiceId] = await Promise.all([
     getServices(),
     getSettings(),
     getGallery(),
+    getPopularServiceId(),
   ])
 
   const shopName = settings?.shopName || "Mi Barbería"
@@ -77,31 +100,7 @@ export default async function Home() {
       <WhatsAppFloatButton phone={settings?.phone} />
 
       {/* ── Nav ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image src="/logo2.png" alt={shopName} width={32} height={32} />
-            <span className="font-bold tracking-wide text-white">{shopName}</span>
-          </div>
-          <div className="flex items-center gap-8">
-            <a href="#servicios" className="hidden sm:block text-sm text-white/50 hover:text-white transition font-medium">
-              Servicios
-            </a>
-            <a href="#ubicacion" className="hidden sm:block text-sm text-white/50 hover:text-white transition font-medium">
-              Ubicación
-            </a>
-            <Link
-              href="/booking"
-              className="bg-[#e84118] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#c0392b] transition-all hover:shadow-lg hover:shadow-[#e84118]/20"
-            >
-              Agendar
-            </Link>
-            <Link href="/login" className="text-xs text-white/20 hover:text-white/50 transition">
-              Admin
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <SiteNav shopName={shopName} />
 
       {/* ── Content above background ── */}
       <div className="relative z-10">
@@ -111,7 +110,7 @@ export default async function Home() {
 
       {/* ── Services ── */}
       <section id="servicios" className="py-28 border-t border-white/5">
-        <div className="max-w-6xl mx-auto px-6">
+        <Reveal className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16">
             <div>
               <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-4">
@@ -131,28 +130,30 @@ export default async function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">
-            {services.map((service, i) => (
+            {services.map((service, i) => {
+              const isPopular = popularServiceId ? service.id === popularServiceId : i === 1
+              return (
               <div
                 key={service.id}
                 className={`relative group rounded-2xl p-7 border transition-all duration-300 hover:-translate-y-1 ${
-                  i === 1
+                  isPopular
                     ? "bg-gradient-to-b from-[#1a1200] to-[#0d0900] border-[#e84118]/40 shadow-xl shadow-[#e84118]/10"
                     : "bg-[#111] border-white/8 hover:border-white/15 hover:bg-[#161616]"
                 }`}
               >
-                {i === 1 && (
+                {isPopular && (
                   <>
                     <div className="absolute inset-0 rounded-2xl bg-[#e84118]/5 pointer-events-none" />
                     <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#e84118] text-white text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase">
-                      Popular
+                      {popularServiceId ? "El más pedido" : "Popular"}
                     </span>
                   </>
                 )}
                 <div className="mb-5">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-5 ${
-                    i === 1 ? "bg-[#e84118]/20" : "bg-white/5"
+                    isPopular ? "bg-[#e84118]/20" : "bg-white/5"
                   }`}>
-                    <Scissors weight="duotone" size={18} className={i === 1 ? "text-[#e84118]" : "text-white/50"} />
+                    <Scissors weight="duotone" size={18} className={isPopular ? "text-[#e84118]" : "text-white/50"} />
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
                   {service.description && (
@@ -167,7 +168,7 @@ export default async function Home() {
                   <Link
                     href="/booking"
                     className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition ${
-                      i === 1
+                      isPopular
                         ? "bg-[#e84118] text-white hover:bg-[#c0392b]"
                         : "bg-white/8 text-white/60 hover:bg-[#e84118] hover:text-white"
                     }`}
@@ -177,14 +178,15 @@ export default async function Home() {
                   </Link>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ── How it works ── */}
       <section className="py-28 bg-[#080808] border-t border-white/5">
-        <div className="max-w-6xl mx-auto px-6">
+        <Reveal className="max-w-6xl mx-auto px-6">
           <div className="mb-16">
             <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-4">
               Proceso
@@ -236,12 +238,12 @@ export default async function Home() {
               </div>
             ))}
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* ── Features ── */}
       <section className="py-28 border-t border-white/5">
-        <div className="max-w-6xl mx-auto px-6">
+        <Reveal className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
               <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-4">
@@ -357,13 +359,16 @@ export default async function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
+
+      {/* ── Testimonials ── */}
+      <Testimonials />
 
       {/* ── Gallery ── */}
       {gallery.length > 0 && (
         <section className="py-28 bg-[#080808] border-t border-white/5">
-          <div className="max-w-6xl mx-auto px-6">
+          <Reveal className="max-w-6xl mx-auto px-6">
             <div className="mb-16">
               <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-4">
                 Portafolio
@@ -393,7 +398,7 @@ export default async function Home() {
                 </div>
               ))}
             </div>
-          </div>
+          </Reveal>
         </section>
       )}
 
@@ -401,7 +406,7 @@ export default async function Home() {
       <section className="relative py-32 overflow-hidden border-t border-white/5">
         <div className="absolute inset-0 bg-gradient-to-br from-[#1a1200] via-[#0a0a0a] to-[#0a0a0a]" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#e84118]/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="relative z-10 max-w-4xl mx-auto text-center px-6">
+        <Reveal className="relative z-10 max-w-4xl mx-auto text-center px-6">
           <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-6">
             Agenda ahora
           </p>
@@ -421,13 +426,13 @@ export default async function Home() {
             Agendar mi cita
             <ArrowUpRight weight="duotone" size={20} />
           </Link>
-        </div>
+        </Reveal>
       </section>
 
       {/* ── Location ── */}
       {settings?.address && (
         <section id="ubicacion" className="py-28 bg-[#080808] border-t border-white/5">
-          <div className="max-w-6xl mx-auto px-6">
+          <Reveal className="max-w-6xl mx-auto px-6">
             <div className="mb-16">
               <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-4">
                 Ubicacion
@@ -503,7 +508,7 @@ export default async function Home() {
                 />
               </div>
             </div>
-          </div>
+          </Reveal>
         </section>
       )}
 

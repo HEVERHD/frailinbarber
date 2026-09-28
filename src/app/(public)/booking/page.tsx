@@ -12,6 +12,8 @@ import {
   CaretRight as ChevronRight,
   DeviceMobile as Smartphone,
   X,
+  CalendarX,
+  ClockCountdown,
 } from "@phosphor-icons/react"
 
 type Barber = {
@@ -71,6 +73,7 @@ export default function BookingPage() {
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null)
   const [services, setServices] = useState<Service[]>([])
+  const [servicesLoading, setServicesLoading] = useState(true)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedTime, setSelectedTime] = useState("")
@@ -176,6 +179,7 @@ export default function BookingPage() {
       fetch("/api/services")
         .then((r) => r.json())
         .then(setServices)
+        .finally(() => setServicesLoading(false))
     }
   }, [step, services.length])
 
@@ -375,7 +379,8 @@ export default function BookingPage() {
       : ["barber", "service", "datetime", "info", "confirm"]
 
   // ── Input styles ───────────────────────────────────────────
-  const inputCls = "w-full p-3.5 bg-[#151515] border border-white/12 rounded-xl text-white placeholder-white/25 focus:border-[#e84118] focus:outline-none transition text-sm"
+  // text-base (16px) — below that, iOS Safari auto-zooms the page on focus
+  const inputCls = "w-full p-3.5 bg-[#151515] border border-white/12 rounded-xl text-white placeholder-white/25 focus:border-[#e84118] focus:outline-none transition text-base"
 
   // ── Render ─────────────────────────────────────────────────
   return (
@@ -528,7 +533,20 @@ export default function BookingPage() {
               <h2 className="text-2xl font-black">Elige tu servicio</h2>
             </div>
             <div className="space-y-3">
-              {services.map((service) => (
+              {servicesLoading && services.length === 0 ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-5 rounded-2xl border border-white/8 bg-[#1a1a1a] animate-pulse">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2.5">
+                        <div className="h-4 w-32 bg-white/10 rounded" />
+                        <div className="h-3 w-44 bg-white/5 rounded" />
+                        <div className="h-3 w-16 bg-white/5 rounded" />
+                      </div>
+                      <div className="h-5 w-14 bg-white/10 rounded" />
+                    </div>
+                  </div>
+                ))
+              ) : services.map((service) => (
                 <button
                   key={service.id}
                   onClick={() => { setSelectedService(service); setStep("datetime") }}
@@ -654,17 +672,31 @@ export default function BookingPage() {
             {!selectedDate ? (
               <p className="text-center text-white/25 text-sm py-8">Selecciona un día para ver los horarios</p>
             ) : loading ? (
-              <div className="flex flex-col items-center py-10 gap-3">
-                <div className="w-8 h-8 rounded-full border-2 border-[#e84118]/20 border-t-[#e84118] animate-spin" />
-                <p className="text-sm text-white/30">Cargando horarios...</p>
+              <div className="space-y-5">
+                {[0, 1].map((g) => (
+                  <div key={g}>
+                    <div className="h-2.5 w-16 bg-white/5 rounded mb-2.5 animate-pulse" />
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="h-10 rounded-xl bg-white/5 animate-pulse" style={{ animationDelay: `${(g * 8 + i) * 40}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : dayOff ? (
               <div className="text-center py-8">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3">
+                  <CalendarX weight="duotone" size={22} className="text-white/30" />
+                </div>
                 <p className="text-white/50 font-medium">Este día no hay servicio</p>
                 <p className="text-sm text-white/25 mt-1">Elige otra fecha</p>
               </div>
             ) : slots.length === 0 ? (
               <div className="text-center py-4">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-3">
+                  <ClockCountdown weight="duotone" size={22} className="text-white/30" />
+                </div>
                 <p className="text-white/40 mb-4 text-sm">No hay horarios disponibles para este día</p>
                 {waitlistDone ? (
                   <div className="bg-emerald-900/20 border border-emerald-500/20 rounded-xl p-4">
