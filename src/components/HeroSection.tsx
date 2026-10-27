@@ -13,6 +13,33 @@ const PHRASES = [
   "fácil y rápido.",
 ]
 
+// ── HUD animation configs ─────────────────────────────────────
+const HUD_SPARKS = [
+  { dur: "3.5s", delay: "0s",    sz: 3 },
+  { dur: "3.5s", delay: "1.17s", sz: 2 },
+  { dur: "3.5s", delay: "2.33s", sz: 3 },
+  { dur: "5s",   delay: "0.5s",  sz: 4 },
+  { dur: "5s",   delay: "2.1s",  sz: 2 },
+  { dur: "5s",   delay: "3.5s",  sz: 3 },
+  { dur: "7s",   delay: "0s",    sz: 5 },
+  { dur: "7s",   delay: "3.5s",  sz: 2 },
+]
+
+const HUD_EMBERS = [
+  { l: "50%", b: "28%", s: 3, d: "2.2s", dl: "0s",    an: "hw-ember-c" },
+  { l: "47%", b: "30%", s: 4, d: "2.8s", dl: "0.4s",  an: "hw-ember-l" },
+  { l: "53%", b: "26%", s: 2, d: "2.0s", dl: "0.8s",  an: "hw-ember-r" },
+  { l: "45%", b: "32%", s: 3, d: "3.1s", dl: "1.2s",  an: "hw-ember-l" },
+  { l: "55%", b: "29%", s: 4, d: "2.5s", dl: "0.2s",  an: "hw-ember-r" },
+  { l: "48%", b: "27%", s: 2, d: "1.9s", dl: "1.6s",  an: "hw-ember-c" },
+  { l: "52%", b: "31%", s: 5, d: "2.7s", dl: "0.6s",  an: "hw-ember-r" },
+  { l: "46%", b: "33%", s: 3, d: "2.3s", dl: "1.0s",  an: "hw-ember-l" },
+  { l: "54%", b: "28%", s: 2, d: "3.0s", dl: "1.4s",  an: "hw-ember-c" },
+  { l: "49%", b: "25%", s: 4, d: "2.1s", dl: "0.3s",  an: "hw-ember-l" },
+  { l: "51%", b: "30%", s: 3, d: "2.6s", dl: "1.8s",  an: "hw-ember-r" },
+  { l: "50%", b: "26%", s: 2, d: "2.4s", dl: "0.9s",  an: "hw-ember-c" },
+]
+
 interface HeroSectionProps {
   galleryImages?: string[]
   shopName?: string
@@ -26,6 +53,20 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
   const [started, setStarted] = useState(false)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [scrolled, setScrolled] = useState(false)
+  const [hudPhase, setHudPhase] = useState<"sparks" | "embers">("sparks")
+  const [hudFading, setHudFading] = useState(false)
+
+  // Cycle HUD effect: sparks → embers → sparks …
+  useEffect(() => {
+    const cycle = setInterval(() => {
+      setHudFading(true)
+      setTimeout(() => {
+        setHudPhase(p => p === "sparks" ? "embers" : "sparks")
+        setHudFading(false)
+      }, 700)
+    }, 5500)
+    return () => clearInterval(cycle)
+  }, [])
 
   // Hide scroll indicator on scroll
   useEffect(() => {
@@ -194,6 +235,31 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
           background-size: 28px 28px;
         }
+
+        /* ── HUD: electric sparks ── */
+        @keyframes hw-spark-orbit { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+        @keyframes hw-spark-blink {
+          0%, 100% { opacity: 1; transform: scale(1) translateX(-50%); }
+          40%       { opacity: 0.15; transform: scale(0.3) translateX(-165%); }
+          70%       { opacity: 0.8; transform: scale(1.4) translateX(-35%); }
+        }
+
+        /* ── HUD: ember / fire particles ── */
+        @keyframes hw-ember-c {
+          0%   { transform: translateY(0)     translateX(0);     opacity: 0.95; }
+          60%  { opacity: 0.5; }
+          100% { transform: translateY(-80px) translateX(3px);   opacity: 0; }
+        }
+        @keyframes hw-ember-l {
+          0%   { transform: translateY(0)     translateX(0);     opacity: 0.95; }
+          60%  { opacity: 0.5; }
+          100% { transform: translateY(-78px) translateX(-16px); opacity: 0; }
+        }
+        @keyframes hw-ember-r {
+          0%   { transform: translateY(0)     translateX(0);     opacity: 0.95; }
+          60%  { opacity: 0.5; }
+          100% { transform: translateY(-78px) translateX(16px);  opacity: 0; }
+        }
       `}</style>
 
       <section className="relative pt-24 min-h-screen flex items-center overflow-hidden">
@@ -315,12 +381,80 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   style={{ inset: "13%" }}
                 />
 
+                {/* ── Electric sparks phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    opacity: hudPhase === "sparks" && !hudFading ? 1 : 0,
+                    transition: "opacity 0.7s ease",
+                  }}
+                >
+                  {HUD_SPARKS.map((sp, i) => (
+                    <div
+                      key={i}
+                      className="absolute inset-0"
+                      style={{ animation: `hw-spark-orbit ${sp.dur} ${sp.delay} linear infinite` }}
+                    >
+                      <div
+                        className="absolute top-[5%] left-1/2 rounded-full"
+                        style={{
+                          width: sp.sz,
+                          height: sp.sz * 2.5,
+                          marginTop: -sp.sz,
+                          animation: `hw-spark-blink ${parseFloat(sp.dur) * 0.55}s ${sp.delay} ease-in-out infinite`,
+                          background: "linear-gradient(to bottom, #fff, #a78bfa)",
+                          filter: "drop-shadow(0 0 3px #7c3aed) drop-shadow(0 0 7px #fff)",
+                          transform: "translateX(-50%)",
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* ── Ember / fire particles phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none overflow-hidden rounded-full"
+                  style={{
+                    opacity: hudPhase === "embers" && !hudFading ? 1 : 0,
+                    transition: "opacity 0.7s ease",
+                  }}
+                >
+                  {HUD_EMBERS.map((em, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full"
+                      style={{
+                        left: em.l,
+                        bottom: em.b,
+                        width: em.s,
+                        height: em.s,
+                        transform: "translateX(-50%)",
+                        background: `radial-gradient(circle, ${i % 3 === 0 ? "#fbbf24" : i % 3 === 1 ? "#f97316" : "#ef4444"} 0%, transparent 100%)`,
+                        filter: `blur(0.5px) drop-shadow(0 0 ${em.s + 2}px ${i % 2 === 0 ? "#f97316" : "#e84118"})`,
+                        animation: `${em.an} ${em.d} ${em.dl} ease-out infinite`,
+                      }}
+                    />
+                  ))}
+                  {/* Warm ember glow at base */}
+                  <div
+                    className="absolute bottom-[22%] left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
+                    style={{
+                      width: "40%", height: "15%",
+                      background: "radial-gradient(ellipse, rgba(249,115,22,0.35) 0%, transparent 70%)",
+                      filter: "blur(6px)",
+                    }}
+                  />
+                </div>
+
                 {/* Radial glow */}
                 <div
                   className="fs-glow absolute rounded-full pointer-events-none"
                   style={{
                     inset: "20%",
-                    background: "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 70%)",
+                    background: hudPhase === "embers"
+                      ? "radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)"
+                      : "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 70%)",
+                    transition: "background 0.7s ease",
                   }}
                 />
 
