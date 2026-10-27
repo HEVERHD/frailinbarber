@@ -196,7 +196,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
         }
       `}</style>
 
-      <section className="relative pt-16 min-h-screen flex items-center overflow-hidden">
+      <section className="relative pt-24 min-h-screen flex items-center overflow-hidden">
 
         {/* ── Background ── */}
         {/* Gradient vignette so hero text stays readable over parallax bg */}
@@ -206,8 +206,8 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent pointer-events-none lg:hidden" />
         <div className="absolute inset-0 fs-dot-grid pointer-events-none" />
         <div className="fs-orb-1 absolute -top-[15%] -left-[5%]  w-[700px] h-[700px] rounded-full bg-[#e84118]/6 blur-[140px] pointer-events-none" />
-        <div className="fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full bg-[#e84118]/4 blur-[110px] pointer-events-none" />
-        <div className="absolute bottom-[15%] right-[20%]          w-[350px] h-[350px] rounded-full bg-[#e84118]/3 blur-[90px]  pointer-events-none" />
+        <div className="fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full bg-[#7c3aed]/6 blur-[110px] pointer-events-none" />
+        <div className="absolute bottom-[15%] right-[20%]          w-[350px] h-[350px] rounded-full bg-[#7c3aed]/4 blur-[90px]  pointer-events-none" />
 
         {/* Scan line */}
         <div className="fs-scan absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#e84118]/25 to-transparent pointer-events-none z-10" />
@@ -320,7 +320,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   className="fs-glow absolute rounded-full pointer-events-none"
                   style={{
                     inset: "20%",
-                    background: "radial-gradient(circle, rgba(217,119,6,0.28) 0%, transparent 70%)",
+                    background: "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 70%)",
                   }}
                 />
 
@@ -331,7 +331,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                     alt="Mi Barbería"
                     fill
                     className="object-contain drop-shadow-2xl"
-                    style={{ filter: "drop-shadow(0 0 18px rgba(217,119,6,0.4))" }}
+                    style={{ filter: "drop-shadow(0 0 18px rgba(139,92,246,0.5))" }}
                   />
                 </div>
 
@@ -348,6 +348,12 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
 
             {/* ─── Text — bottom on mobile, left on desktop ─── */}
             <div className="order-2 lg:order-1 text-center lg:text-left">
+
+              {/* Halloween seasonal badge */}
+              <div className="inline-flex items-center gap-2 border border-[#7c3aed]/40 bg-[#7c3aed]/15 text-[#c4b5fd] text-[10px] font-black px-3 py-1.5 rounded-full mb-3 tracking-[0.22em] uppercase"
+                style={{ animation: "fs-dot-blink 2.5s ease-in-out infinite" }}>
+                🎃 Modo Halloween · 31 Oct
+              </div>
 
               {/* Location badge */}
               <div className="fs-badge inline-flex items-center gap-2.5 border border-[#e84118]/25 bg-[#e84118]/8 text-[#e84118] text-[11px] font-bold px-4 py-2 rounded-full mb-6 lg:mb-8 tracking-[0.2em]">

@@ -9,6 +9,8 @@ import WhatsAppFloatButton from "@/components/WhatsAppFloatButton"
 import SiteNav from "@/components/SiteNav"
 import Reveal from "@/components/Reveal"
 import Testimonials from "@/components/Testimonials"
+import HalloweenBanner from "@/components/HalloweenBanner"
+import HalloweenDecorations from "@/components/HalloweenDecorations"
 import {
   Clock,
   Calendar,
@@ -99,11 +101,17 @@ export default async function Home() {
       {/* Direct WhatsApp contact — always reachable, doesn't require going through /booking */}
       <WhatsAppFloatButton phone={settings?.phone} />
 
+      {/* ── Halloween seasonal banner (above nav) ── */}
+      <HalloweenBanner />
+
       {/* ── Nav ── */}
       <SiteNav shopName={shopName} />
 
       {/* ── Content above background ── */}
       <div className="relative z-10">
+
+      {/* ── Halloween floating decorations (bats, ghost, spiderweb) ── */}
+      <HalloweenDecorations />
 
       {/* ── Hero ── */}
       <HeroSection galleryImages={gallery.map((item) => item.imageUrl)} shopName={shopName} city={city} />
@@ -404,8 +412,8 @@ export default async function Home() {
 
       {/* ── CTA ── */}
       <section className="relative py-32 overflow-hidden border-t border-white/5">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a1200] via-[#0a0a0a] to-[#0a0a0a]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#e84118]/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0d0020] via-[#0a0a0a] to-[#0a0a0a]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-[#7c3aed]/12 rounded-full blur-[100px] pointer-events-none" />
         <Reveal className="relative z-10 max-w-4xl mx-auto text-center px-6">
           <p className="text-xs font-bold text-[#e84118] tracking-[0.25em] uppercase mb-6">
             Agenda ahora
@@ -547,18 +555,37 @@ export default async function Home() {
             <p className="text-xs text-white/20">Tu look habla antes que tú.</p>
           </div>
 
-          <div className="border-t border-white/5 mt-6 pt-4 text-center">
+          <div className="border-t border-white/5 mt-6 pt-4 text-center space-y-2">
             <p className="text-[11px] text-white/40 leading-relaxed">
-              Sitio desarrollado por Hevert David — Analista Programador Frontend
-              <br className="sm:hidden" />
-              {" "}·{" "}
+              Desarrollado por{" "}
+              <a
+                href="https://www.hevertdavid.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 hover:text-[#e84118] transition font-bold underline underline-offset-2 decoration-white/20 hover:decoration-[#e84118]"
+              >
+                Hevert David
+              </a>
+              {" "}— Analista Programador Frontend
+            </p>
+            <p className="text-[11px] text-white/30">
+              ¿Quieres una app así?{" "}
               <a
                 href="https://wa.me/573006176641"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-white/60 hover:text-[#e84118] transition font-medium"
+                className="text-[#e84118] hover:text-white transition font-semibold"
               >
-                ¿Quieres una app así? Escríbeme
+                Escríbeme por WhatsApp
+              </a>
+              {" "}·{" "}
+              <a
+                href="https://www.hevertdavid.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/50 hover:text-white transition font-medium"
+              >
+                Ver portafolio →
               </a>
             </p>
           </div>
