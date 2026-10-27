@@ -200,10 +200,10 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
 
         {/* ── Background ── */}
         {/* Gradient vignette so hero text stays readable over parallax bg */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/55 pointer-events-none" />
-        {/* Extra directional darkening so the headline stays readable regardless of what's behind it */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-transparent pointer-events-none hidden lg:block" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent pointer-events-none lg:hidden" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#050010]/70 via-[#080012]/25 to-[#050010]/70 pointer-events-none" />
+        {/* Extra directional darkening — desktop left, mobile bottom */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#050010]/60 via-transparent to-transparent pointer-events-none hidden lg:block" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#050010]/80 via-[#080012]/30 to-transparent pointer-events-none lg:hidden" />
         <div className="absolute inset-0 fs-dot-grid pointer-events-none" />
         <div className="fs-orb-1 absolute -top-[15%] -left-[5%]  w-[700px] h-[700px] rounded-full bg-[#e84118]/6 blur-[140px] pointer-events-none" />
         <div className="fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full bg-[#7c3aed]/6 blur-[110px] pointer-events-none" />
@@ -229,8 +229,8 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
         </div>
 
         {/* Top / bottom fades */}
-        <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-[#0a0a0a] to-transparent pointer-events-none z-10" />
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none z-10" />
+        <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-[#050010] to-transparent pointer-events-none z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#050010] to-transparent pointer-events-none z-10" />
 
         {/* ── Content ── */}
         <div className="relative z-20 max-w-6xl mx-auto px-6 py-10 md:py-20 w-full">

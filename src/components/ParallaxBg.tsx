@@ -20,8 +20,8 @@ export default function ParallaxBg() {
 
       // Overlay darkens a bit as you scroll past the hero
       if (overlayRef.current) {
-        const extraDark = Math.min(0.18, y * 0.00018)
-        overlayRef.current.style.opacity = String(0.68 + extraDark)
+        const extraDark = Math.min(0.16, y * 0.00016)
+        overlayRef.current.style.opacity = String(0.55 + extraDark)
       }
     }
 
@@ -39,19 +39,27 @@ export default function ParallaxBg() {
         style={{ willChange: "transform", transformOrigin: "center center" }}
       >
         <Image
-          src="/barberia.jpg"
+          src="/hallowenpaper.webp"
           alt=""
           fill
           className="object-cover"
-          style={{ filter: "blur(1px)" }}
+          style={{ filter: "saturate(0.75) brightness(0.85)" }}
           priority
         />
       </div>
-      {/* Dark overlay — starts at 68% black, darkens slightly on scroll */}
+      {/* Dark purple horror overlay — starts at 55% opacity, darkens on scroll */}
       <div
         ref={overlayRef}
         className="absolute inset-0"
-        style={{ background: "black", opacity: 0.68 }}
+        style={{
+          background: "linear-gradient(160deg, #0a0018 0%, #050010 45%, #110008 100%)",
+          opacity: 0.55,
+        }}
+      />
+      {/* Subtle purple color bleed */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "rgba(60,0,90,0.18)" }}
       />
     </div>
   )
