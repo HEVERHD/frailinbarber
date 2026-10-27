@@ -25,6 +25,9 @@ const HUD_SPARKS = [
   { dur: "7s",   delay: "3.5s",  sz: 2 },
 ]
 
+const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch"] as const
+type HudPhase = typeof HUD_PHASES[number]
+
 const HUD_EMBERS = [
   { l: "50%", b: "28%", s: 3, d: "2.2s", dl: "0s",    an: "hw-ember-c" },
   { l: "47%", b: "30%", s: 4, d: "2.8s", dl: "0.4s",  an: "hw-ember-l" },
@@ -53,15 +56,18 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
   const [started, setStarted] = useState(false)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [scrolled, setScrolled] = useState(false)
-  const [hudPhase, setHudPhase] = useState<"sparks" | "embers">("sparks")
+  const [hudPhase, setHudPhase] = useState<HudPhase>("sparks")
   const [hudFading, setHudFading] = useState(false)
 
-  // Cycle HUD effect: sparks → embers → sparks …
+  // Cycle through all 5 HUD phases: sparks → vortex → heartbeat → embers → glitch → …
   useEffect(() => {
     const cycle = setInterval(() => {
       setHudFading(true)
       setTimeout(() => {
-        setHudPhase(p => p === "sparks" ? "embers" : "sparks")
+        setHudPhase(p => {
+          const idx = HUD_PHASES.indexOf(p)
+          return HUD_PHASES[(idx + 1) % HUD_PHASES.length]
+        })
         setHudFading(false)
       }, 700)
     }, 5500)
@@ -242,6 +248,73 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           0%, 100% { opacity: 1; transform: scale(1) translateX(-50%); }
           40%       { opacity: 0.15; transform: scale(0.3) translateX(-165%); }
           70%       { opacity: 0.8; transform: scale(1.4) translateX(-35%); }
+        }
+
+        /* ── HUD: vortex portal ── */
+        @keyframes hw-vortex-spin  { from { transform: rotate(0deg) }   to { transform: rotate(360deg) } }
+        @keyframes hw-vortex-spin2 { from { transform: rotate(0deg) }   to { transform: rotate(-360deg) } }
+        @keyframes hw-vortex-pulse { 0%,100% { opacity:.55; transform: scale(1) }  50% { opacity:.8; transform: scale(1.06) } }
+
+        /* ── HUD: heartbeat pulse ── */
+        @keyframes hw-hb-ring1 {
+          0%,100%  { transform: scale(1);    opacity: 0; }
+          5%       { transform: scale(1.02); opacity: 0.85; }
+          45%      { transform: scale(1.55); opacity: 0; }
+        }
+        @keyframes hw-hb-ring2 {
+          0%,100%  { transform: scale(1);    opacity: 0; }
+          18%      { transform: scale(1.02); opacity: 0.7; }
+          58%      { transform: scale(1.5);  opacity: 0; }
+        }
+        @keyframes hw-hb-logo {
+          0%,100%  { transform: scale(1); }
+          6%       { transform: scale(1.10); }
+          11%      { transform: scale(1); }
+          20%      { transform: scale(1.07); }
+          25%      { transform: scale(1); }
+        }
+        @keyframes hw-hb-glow {
+          0%,100%  { opacity: 0.3; transform: scale(1); }
+          6%       { opacity: 0.9; transform: scale(1.2); }
+          11%      { opacity: 0.3; transform: scale(1); }
+          20%      { opacity: 0.7; transform: scale(1.15); }
+          25%      { opacity: 0.3; transform: scale(1); }
+        }
+
+        /* ── HUD: glitch ── */
+        @keyframes hw-glitch-flicker {
+          0%,78%,100% { opacity: 1; }
+          79%  { opacity: 0.15; }
+          80%  { opacity: 1; }
+          82%  { opacity: 0.4; }
+          83%  { opacity: 1; }
+          91%  { opacity: 0.05; }
+          92%  { opacity: 1; }
+        }
+        @keyframes hw-glitch-r {
+          0%,76%,100% { transform: translate(0,0);   opacity: 0; }
+          77%  { transform: translate(5px,  1px); opacity: 0.45; }
+          79%  { transform: translate(-3px, 0px); opacity: 0.3; }
+          81%  { transform: translate(0,0);        opacity: 0; }
+          89%  { transform: translate(6px, -2px); opacity: 0.35; }
+          91%  { transform: translate(0,0);        opacity: 0; }
+        }
+        @keyframes hw-glitch-b {
+          0%,76%,100% { transform: translate(0,0);   opacity: 0; }
+          77%  { transform: translate(-4px, 2px); opacity: 0.4; }
+          79%  { transform: translate(3px, -1px); opacity: 0.25; }
+          81%  { transform: translate(0,0);        opacity: 0; }
+          89%  { transform: translate(-5px, 1px); opacity: 0.3; }
+          91%  { transform: translate(0,0);        opacity: 0; }
+        }
+        @keyframes hw-glitch-scan {
+          0%   { transform: translateY(-110%); opacity: 0.6; }
+          100% { transform: translateY(210%);  opacity: 0.1; }
+        }
+        @keyframes hw-glitch-bar {
+          0%,74%,100% { opacity: 0; transform: scaleY(0); }
+          75%  { opacity: 1; transform: scaleY(1); }
+          78%  { opacity: 0; transform: scaleY(1); }
         }
 
         /* ── HUD: ember / fire particles ── */
@@ -446,26 +519,80 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   />
                 </div>
 
-                {/* Radial glow */}
+                {/* ── Vortex / portal phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "vortex" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  <div className="absolute rounded-full overflow-hidden" style={{ inset: "14%", animation: "hw-vortex-spin 9s linear infinite" }}>
+                    <div className="absolute inset-0" style={{ background: "conic-gradient(from 0deg,#050018,#2d0060,#4c1d95,#0d0035,#1a0050,#7c3aed,#050018)", animation: "hw-vortex-pulse 3s ease-in-out infinite" }} />
+                  </div>
+                  <div className="absolute rounded-full overflow-hidden" style={{ inset: "28%", animation: "hw-vortex-spin2 6s linear infinite" }}>
+                    <div className="absolute inset-0" style={{ background: "conic-gradient(from 180deg,#0a0025,#3b0082,#0d0035,#2d0060,#0a0025)" }} />
+                  </div>
+                  <div className="absolute inset-[40%] rounded-full" style={{ background: "radial-gradient(circle,rgba(167,139,250,0.65) 0%,rgba(109,40,217,0.3) 50%,transparent 100%)", animation: "hw-vortex-pulse 2.5s ease-in-out infinite" }} />
+                </div>
+
+                {/* ── Heartbeat pulse phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "heartbeat" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Lub — first ring burst */}
+                  <div className="absolute rounded-full border-2 border-[#e84118]" style={{ inset: "13%", animation: "hw-hb-ring1 2.5s ease-out infinite" }} />
+                  {/* Dub — second ring burst */}
+                  <div className="absolute rounded-full border border-[#f97316]/70" style={{ inset: "13%", animation: "hw-hb-ring2 2.5s ease-out infinite" }} />
+                  {/* Throb glow */}
+                  <div className="absolute rounded-full" style={{ inset: "20%", background: "radial-gradient(circle,rgba(232,65,24,0.55) 0%,transparent 70%)", animation: "hw-hb-glow 2.5s ease-out infinite" }} />
+                </div>
+
+                {/* ── Glitch / corrupted signal phase ── */}
+                <div
+                  className="absolute inset-0 overflow-hidden rounded-full pointer-events-none"
+                  style={{ opacity: hudPhase === "glitch" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Red channel offset */}
+                  <div className="absolute inset-0 rounded-full" style={{ background: "rgba(255,0,60,0.12)", mixBlendMode: "screen", animation: "hw-glitch-r 3.5s ease-in-out infinite" }} />
+                  {/* Cyan channel offset */}
+                  <div className="absolute inset-0 rounded-full" style={{ background: "rgba(0,180,255,0.10)", mixBlendMode: "screen", animation: "hw-glitch-b 3.5s ease-in-out 0.05s infinite" }} />
+                  {/* Scanline sweep */}
+                  <div className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#0f0]/40 to-transparent" style={{ animation: "hw-glitch-scan 2.8s linear infinite" }} />
+                  {/* Horizontal glitch bars */}
+                  <div className="absolute left-0 right-0 bg-white/8" style={{ top: "35%", height: "4px", transformOrigin: "left", animation: "hw-glitch-bar 3.5s steps(1) infinite" }} />
+                  <div className="absolute left-0 right-0 bg-white/5" style={{ top: "62%", height: "2px", transformOrigin: "left", animation: "hw-glitch-bar 3.5s steps(1) 0.2s infinite" }} />
+                </div>
+
+                {/* Radial glow — color follows active phase */}
                 <div
                   className="fs-glow absolute rounded-full pointer-events-none"
                   style={{
                     inset: "20%",
-                    background: hudPhase === "embers"
-                      ? "radial-gradient(circle, rgba(249,115,22,0.22) 0%, transparent 70%)"
-                      : "radial-gradient(circle, rgba(139,92,246,0.30) 0%, transparent 70%)",
+                    background:
+                      hudPhase === "embers"    ? "radial-gradient(circle,rgba(249,115,22,0.25) 0%,transparent 70%)" :
+                      hudPhase === "vortex"    ? "radial-gradient(circle,rgba(109,40,217,0.40) 0%,transparent 70%)" :
+                      hudPhase === "heartbeat" ? "radial-gradient(circle,rgba(232,65,24,0.22) 0%,transparent 70%)" :
+                      hudPhase === "glitch"    ? "radial-gradient(circle,rgba(0,220,100,0.18) 0%,transparent 70%)" :
+                                                 "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
                     transition: "background 0.7s ease",
                   }}
                 />
 
-                {/* Logo — floating */}
+                {/* Logo — floating, tint adapts to phase */}
                 <div className="fs-float relative z-10" style={{ width: "46%", height: "46%" }}>
                   <Image
                     src="/logo2.png"
                     alt="Mi Barbería"
                     fill
                     className="object-contain drop-shadow-2xl"
-                    style={{ filter: "drop-shadow(0 0 18px rgba(139,92,246,0.5))" }}
+                    style={{
+                      filter:
+                        hudPhase === "glitch"    ? "drop-shadow(0 0 14px rgba(0,255,80,0.45)) hue-rotate(90deg)" :
+                        hudPhase === "heartbeat" ? "drop-shadow(0 0 20px rgba(232,65,24,0.65))" :
+                        hudPhase === "vortex"    ? "drop-shadow(0 0 18px rgba(167,139,250,0.6))" :
+                        hudPhase === "embers"    ? "drop-shadow(0 0 18px rgba(249,115,22,0.55))" :
+                                                   "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
+                      transition: "filter 0.7s ease",
+                    }}
                   />
                 </div>
 
