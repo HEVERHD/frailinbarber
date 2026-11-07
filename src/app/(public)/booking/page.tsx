@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import HalloweenBanner from "@/components/HalloweenBanner"
-import HalloweenDecorations from "@/components/HalloweenDecorations"
+import FiestasCartagenaBanner from "@/components/FiestasCartagenaBanner"
+import FiestasCartagenaDecorations from "@/components/FiestasCartagenaDecorations"
 import {
   ArrowLeft,
   Clock,
@@ -382,14 +382,14 @@ export default function BookingPage() {
 
   // ── Input styles ───────────────────────────────────────────
   // text-base (16px) — below that, iOS Safari auto-zooms the page on focus
-  const inputCls = "w-full p-3.5 bg-[#12001e] border border-[#7c3aed]/20 rounded-xl text-white placeholder-white/25 focus:border-[#e84118] focus:outline-none transition text-base"
+  const inputCls = "w-full p-3.5 bg-[#000d20] border border-[#F5C842]/15 rounded-xl text-white placeholder-white/25 focus:border-[#e84118] focus:outline-none transition text-base"
 
   // ── Render ─────────────────────────────────────────────────
   return (
     <div className="min-h-screen text-white">
       {/* ── Halloween seasonal ── */}
-      <HalloweenBanner />
-      <HalloweenDecorations />
+      <FiestasCartagenaBanner />
+      <FiestasCartagenaDecorations />
 
       {/* PWA install modal */}
       {showPwaModal && (
@@ -442,25 +442,24 @@ export default function BookingPage() {
           </div>
         </div>
       )}
-      {/* Halloween background */}
+      {/* Fiestas background — dark navy night sky */}
       <div className="fixed inset-0 z-0">
         <Image
-          src="/hallowenpaper.webp"
+          src="/barberia.jpg"
           alt=""
           fill
           className="object-cover scale-105"
-          style={{ opacity: 0.55, filter: "blur(3px) saturate(0.8)" }}
+          style={{ opacity: 0.45, filter: "blur(2px) saturate(0.85) brightness(0.8)" }}
           priority
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
         />
-        {/* Dark purple horror overlay */}
-        <div className="absolute inset-0 bg-[#080012]/80" />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0d0020]/60 via-transparent to-[#080012]/70" />
+        {/* Dark navy overlay — perfect for night fireworks */}
+        <div className="absolute inset-0 bg-[#000a1a]/78" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#001030]/55 via-transparent to-[#000a1a]/65" />
       </div>
 
-      {/* Ambient glow — purple */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#7c3aed]/10 rounded-full blur-[120px] pointer-events-none z-10" />
-      <div className="fixed bottom-0 right-1/4 w-[300px] h-[200px] bg-[#e84118]/6 rounded-full blur-[100px] pointer-events-none z-10" />
+      {/* Ambient glow — gold top, blue bottom */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#F5C842]/8 rounded-full blur-[120px] pointer-events-none z-10" />
+      <div className="fixed bottom-0 right-1/4 w-[300px] h-[200px] bg-[#3B82F6]/6 rounded-full blur-[100px] pointer-events-none z-10" />
 
       {/* Extra top padding to clear the fixed Halloween banner (32px) */}
       <div className="relative z-10 max-w-md mx-auto px-4 pt-[72px] pb-20">
@@ -515,7 +514,7 @@ export default function BookingPage() {
                 <button
                   key={barber.id}
                   onClick={() => { setSelectedBarber(barber); setStep("service") }}
-                  className="w-full text-left p-4 rounded-2xl border border-[#7c3aed]/15 bg-[#12001e] hover:border-[#e84118]/60 hover:bg-[#e84118]/5 transition-all group"
+                  className="w-full text-left p-4 rounded-2xl border border-[#F5C842]/12 bg-[#000d20] hover:border-[#e84118]/60 hover:bg-[#e84118]/5 transition-all group"
                 >
                   <div className="flex items-center gap-4">
                     <div className="relative w-14 h-14 rounded-full overflow-hidden bg-white/5 flex-shrink-0 ring-2 ring-white/5 group-hover:ring-[#e84118]/30 transition">
@@ -553,7 +552,7 @@ export default function BookingPage() {
             <div className="space-y-3">
               {servicesLoading && services.length === 0 ? (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="p-5 rounded-2xl border border-[#7c3aed]/10 bg-[#12001e] animate-pulse">
+                  <div key={i} className="p-5 rounded-2xl border border-[#F5C842]/8 bg-[#000d20] animate-pulse">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-2.5">
                         <div className="h-4 w-32 bg-white/10 rounded" />
@@ -568,7 +567,7 @@ export default function BookingPage() {
                 <button
                   key={service.id}
                   onClick={() => { setSelectedService(service); setStep("datetime") }}
-                  className="w-full text-left p-5 rounded-2xl border border-[#7c3aed]/15 bg-[#12001e] hover:border-[#e84118]/60 hover:bg-[#e84118]/5 active:scale-[0.985] transition-all duration-200 group relative overflow-hidden"
+                  className="w-full text-left p-5 rounded-2xl border border-[#F5C842]/12 bg-[#000d20] hover:border-[#e84118]/60 hover:bg-[#e84118]/5 active:scale-[0.985] transition-all duration-200 group relative overflow-hidden"
                 >
                   {/* left accent bar */}
                   <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-[#e84118]/0 group-hover:bg-[#e84118]/60 transition-all duration-300" />
