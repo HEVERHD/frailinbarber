@@ -25,7 +25,7 @@ const HUD_SPARKS = [
   { dur: "7s",   delay: "3.5s",  sz: 2 },
 ]
 
-const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch"] as const
+const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch", "pirotecnia", "aurora", "radar", "galaxia", "sonico"] as const
 type HudPhase = typeof HUD_PHASES[number]
 
 const HUD_EMBERS = [
@@ -41,6 +41,27 @@ const HUD_EMBERS = [
   { l: "49%", b: "25%", s: 4, d: "2.1s", dl: "0.3s",  an: "hw-ember-l" },
   { l: "51%", b: "30%", s: 3, d: "2.6s", dl: "1.8s",  an: "hw-ember-r" },
   { l: "50%", b: "26%", s: 2, d: "2.4s", dl: "0.9s",  an: "hw-ember-c" },
+]
+
+// Pirotecnia — 3 burst waves (Colombian flag: yellow / blue / red) × 10 particles
+function _piroRing(dist: number) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const a = (i / 10) * Math.PI * 2
+    return { px: Math.round(Math.cos(a) * dist), py: Math.round(Math.sin(a) * dist) }
+  })
+}
+const PIRO_WAVES = [
+  { color: "#FCD34D", glow: "#F59E0B", delay: 0,   pts: _piroRing(55) },
+  { color: "#3B82F6", glow: "#2563EB", delay: 0.5, pts: _piroRing(63) },
+  { color: "#EF4444", glow: "#DC2626", delay: 1.0, pts: _piroRing(50) },
+]
+
+// Galaxy — 4 orbital layers at different radii and angular velocities
+const GALAXY_LAYERS = [
+  { n: 7, top: "7%",  dur: 9,  anim: "hw-spark-orbit",  sz: 2, color: "#FCD34D", glow: "#F59E0B" },
+  { n: 5, top: "17%", dur: 7,  anim: "hw-vortex-spin2", sz: 2, color: "#93C5FD", glow: "#3B82F6" },
+  { n: 6, top: "27%", dur: 5,  anim: "hw-spark-orbit",  sz: 3, color: "#FDA4AF", glow: "#F43F5E" },
+  { n: 4, top: "37%", dur: 11, anim: "hw-vortex-spin2", sz: 2, color: "#6EE7B7", glow: "#10B981" },
 ]
 
 interface HeroSectionProps {
@@ -333,6 +354,53 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           60%  { opacity: 0.5; }
           100% { transform: translateY(-78px) translateX(16px);  opacity: 0; }
         }
+
+        /* ── HUD: pirotecnia / fireworks ── */
+        @keyframes hw-piro-burst {
+          0%, 65%, 100% { transform: translate(0,0) scale(0); opacity: 0; }
+          4%  { transform: translate(0,0) scale(1); opacity: 1; }
+          35% { transform: translate(var(--px,50px), var(--py,-50px)) scale(0.15); opacity: 0; }
+        }
+        @keyframes hw-piro-flash {
+          0%, 65%, 100% { opacity: 0; transform: scale(0); }
+          2%  { opacity: 1; transform: scale(2.5); }
+          12% { opacity: 0.4; transform: scale(1); }
+          22% { opacity: 0; }
+        }
+
+        /* ── HUD: aurora boreal ── */
+        @keyframes hw-aurora-hue {
+          from { filter: hue-rotate(0deg) blur(5px); }
+          to   { filter: hue-rotate(360deg) blur(5px); }
+        }
+        @keyframes hw-aurora-pulse {
+          0%, 100% { opacity: 0.5; }
+          50%       { opacity: 0.95; }
+        }
+        @keyframes hw-aurora-inner {
+          from { filter: hue-rotate(180deg) blur(10px); }
+          to   { filter: hue-rotate(540deg) blur(10px); }
+        }
+
+        /* ── HUD: radar sweep ── */
+        @keyframes hw-radar-sweep {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        @keyframes hw-radar-blip {
+          0%  { opacity: 0; }
+          3%  { opacity: 1; }
+          18% { opacity: 0.4; }
+          30% { opacity: 0; }
+          100%{ opacity: 0; }
+        }
+
+        /* ── HUD: sonic pulse rings ── */
+        @keyframes hw-sonic-ring {
+          0%   { transform: scale(0.35); opacity: 0.9; }
+          60%  { opacity: 0.35; }
+          100% { transform: scale(1.12); opacity: 0; }
+        }
       `}</style>
 
       <section className="relative pt-24 min-h-screen flex items-center overflow-hidden">
@@ -562,17 +630,217 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   <div className="absolute left-0 right-0 bg-white/5" style={{ top: "62%", height: "2px", transformOrigin: "left", animation: "hw-glitch-bar 3.5s steps(1) 0.2s infinite" }} />
                 </div>
 
+                {/* ── Pirotecnia / fireworks burst phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "pirotecnia" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {PIRO_WAVES.map((wave, wi) => wave.pts.map((p, pi) => (
+                    <div
+                      key={`${wi}-${pi}`}
+                      className="absolute rounded-full"
+                      style={{
+                        width: 3, height: 3,
+                        top: "50%", left: "50%",
+                        marginTop: -1.5, marginLeft: -1.5,
+                        background: wave.color,
+                        filter: `drop-shadow(0 0 3px ${wave.glow})`,
+                        "--px": p.px + "px",
+                        "--py": p.py + "px",
+                        animation: `hw-piro-burst 2.8s ${wave.delay + pi * 0.025}s ease-out infinite`,
+                      } as any}
+                    />
+                  )))}
+                  {PIRO_WAVES.map((wave, wi) => (
+                    <div
+                      key={wi}
+                      className="absolute rounded-full"
+                      style={{
+                        width: 10, height: 10,
+                        top: "50%", left: "50%",
+                        marginTop: -5, marginLeft: -5,
+                        background: wave.color,
+                        filter: `blur(2px) drop-shadow(0 0 6px ${wave.glow})`,
+                        animation: `hw-piro-flash 2.8s ${wave.delay}s ease-out infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* ── Aurora boreal phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "aurora" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "5%",
+                      background: "conic-gradient(#ff0066,#ff9900,#ffff00,#00ff66,#0099ff,#cc00ff,#ff0066)",
+                      animation: "hw-aurora-hue 7s linear infinite, hw-aurora-pulse 3.5s ease-in-out infinite",
+                      opacity: 0.65,
+                    }}
+                  />
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "16%",
+                      background: "conic-gradient(#00ffcc,#0066ff,#cc00ff,#ff6600,#00ffcc)",
+                      animation: "hw-aurora-inner 9s linear infinite, hw-aurora-pulse 4s ease-in-out 1s infinite",
+                      opacity: 0.45,
+                    }}
+                  />
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "30%",
+                      background: "radial-gradient(circle, rgba(100,200,255,0.4) 0%, rgba(150,0,255,0.2) 50%, transparent 70%)",
+                      animation: "hw-aurora-pulse 2.5s ease-in-out 0.5s infinite",
+                      filter: "blur(6px)",
+                    }}
+                  />
+                </div>
+
+                {/* ── Radar sweep phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "radar" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  <div className="absolute rounded-full border border-[#0f9]/10" style={{ inset: "12%" }} />
+                  <div className="absolute rounded-full border border-[#0f9]/8"  style={{ inset: "28%" }} />
+                  <div className="absolute rounded-full border border-[#0f9]/6"  style={{ inset: "42%" }} />
+                  <div
+                    className="absolute inset-0 rounded-full overflow-hidden"
+                    style={{ animation: "hw-radar-sweep 3.5s linear infinite" }}
+                  >
+                    <div
+                      className="absolute inset-0 rounded-full"
+                      style={{
+                        background: "conic-gradient(from -55deg, transparent 0deg, rgba(0,255,100,0.04) 20deg, rgba(0,255,100,0.18) 55deg, transparent 56deg)",
+                      }}
+                    />
+                    <div
+                      className="absolute"
+                      style={{
+                        top: "50%", left: "50%",
+                        width: "43%", height: 2,
+                        marginTop: -1,
+                        transformOrigin: "0 50%",
+                        background: "linear-gradient(to right, rgba(0,255,100,0.9), transparent)",
+                        filter: "drop-shadow(0 0 3px rgba(0,255,100,0.6))",
+                      }}
+                    />
+                  </div>
+                  {[
+                    { top: "7%",  left: "50%", delay: "2.625s" },
+                    { top: "50%", left: "92%", delay: "0s"     },
+                    { top: "92%", left: "50%", delay: "0.875s" },
+                    { top: "50%", left: "7%",  delay: "1.75s"  },
+                  ].map((blip, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full"
+                      style={{
+                        top: blip.top, left: blip.left,
+                        width: 5, height: 5,
+                        marginTop: -2.5, marginLeft: -2.5,
+                        background: "#0f9",
+                        filter: "drop-shadow(0 0 5px #0f9)",
+                        animation: `hw-radar-blip 3.5s ${blip.delay} ease-out infinite`,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* ── Galaxy orbits phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "galaxia" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {GALAXY_LAYERS.map((layer, li) =>
+                    Array.from({ length: layer.n }, (_, pi) => (
+                      <div
+                        key={`${li}-${pi}`}
+                        className="absolute inset-0"
+                        style={{
+                          animation: `${layer.anim} ${layer.dur}s ${-(pi / layer.n) * layer.dur}s linear infinite`,
+                        }}
+                      >
+                        <div
+                          className="absolute left-1/2 rounded-full"
+                          style={{
+                            top: layer.top,
+                            width: layer.sz,
+                            height: layer.sz * 1.8,
+                            marginLeft: -layer.sz / 2,
+                            marginTop: -layer.sz / 2,
+                            background: layer.color,
+                            filter: `drop-shadow(0 0 3px ${layer.glow})`,
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "35%",
+                      background: "radial-gradient(circle, rgba(252,211,77,0.2) 0%, rgba(59,130,246,0.1) 50%, transparent 100%)",
+                      filter: "blur(8px)",
+                      animation: "hw-aurora-pulse 4s ease-in-out infinite",
+                    }}
+                  />
+                </div>
+
+                {/* ── Sonic pulse rings phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "sonico" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {[
+                    { delay: "0s",   color: "rgba(255,255,255,0.7)", w: 2   },
+                    { delay: "0.6s", color: "rgba(252,211,77,0.55)", w: 1.5 },
+                    { delay: "1.2s", color: "rgba(255,255,255,0.4)", w: 1   },
+                    { delay: "1.8s", color: "rgba(59,130,246,0.5)",  w: 1.5 },
+                    { delay: "2.4s", color: "rgba(255,255,255,0.3)", w: 1   },
+                  ].map((ring, i) => (
+                    <div
+                      key={i}
+                      className="absolute rounded-full"
+                      style={{
+                        inset: "13%",
+                        border: `${ring.w}px solid ${ring.color}`,
+                        animation: `hw-sonic-ring 3s ${ring.delay} ease-out infinite`,
+                      }}
+                    />
+                  ))}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "35%",
+                      background: "radial-gradient(circle, rgba(255,255,255,0.4) 0%, transparent 70%)",
+                      animation: "hw-sonic-ring 3s ease-out infinite",
+                      filter: "blur(4px)",
+                    }}
+                  />
+                </div>
+
                 {/* Radial glow — color follows active phase */}
                 <div
                   className="fs-glow absolute rounded-full pointer-events-none"
                   style={{
                     inset: "20%",
                     background:
-                      hudPhase === "embers"    ? "radial-gradient(circle,rgba(249,115,22,0.25) 0%,transparent 70%)" :
-                      hudPhase === "vortex"    ? "radial-gradient(circle,rgba(109,40,217,0.40) 0%,transparent 70%)" :
-                      hudPhase === "heartbeat" ? "radial-gradient(circle,rgba(232,65,24,0.22) 0%,transparent 70%)" :
-                      hudPhase === "glitch"    ? "radial-gradient(circle,rgba(0,220,100,0.18) 0%,transparent 70%)" :
-                                                 "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
+                      hudPhase === "embers"     ? "radial-gradient(circle,rgba(249,115,22,0.25) 0%,transparent 70%)" :
+                      hudPhase === "vortex"     ? "radial-gradient(circle,rgba(109,40,217,0.40) 0%,transparent 70%)" :
+                      hudPhase === "heartbeat"  ? "radial-gradient(circle,rgba(232,65,24,0.22) 0%,transparent 70%)" :
+                      hudPhase === "glitch"     ? "radial-gradient(circle,rgba(0,220,100,0.18) 0%,transparent 70%)" :
+                      hudPhase === "pirotecnia" ? "radial-gradient(circle,rgba(252,211,77,0.30) 0%,transparent 70%)" :
+                      hudPhase === "aurora"     ? "radial-gradient(circle,rgba(100,200,255,0.25) 0%,transparent 70%)" :
+                      hudPhase === "radar"      ? "radial-gradient(circle,rgba(0,220,100,0.20) 0%,transparent 70%)" :
+                      hudPhase === "galaxia"    ? "radial-gradient(circle,rgba(252,211,77,0.15) 0%,transparent 70%)" :
+                      hudPhase === "sonico"     ? "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" :
+                                                  "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
                     transition: "background 0.7s ease",
                   }}
                 />
@@ -586,11 +854,16 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                     className="object-contain drop-shadow-2xl"
                     style={{
                       filter:
-                        hudPhase === "glitch"    ? "drop-shadow(0 0 14px rgba(0,255,80,0.45)) hue-rotate(90deg)" :
-                        hudPhase === "heartbeat" ? "drop-shadow(0 0 20px rgba(232,65,24,0.65))" :
-                        hudPhase === "vortex"    ? "drop-shadow(0 0 18px rgba(167,139,250,0.6))" :
-                        hudPhase === "embers"    ? "drop-shadow(0 0 18px rgba(249,115,22,0.55))" :
-                                                   "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
+                        hudPhase === "glitch"     ? "drop-shadow(0 0 14px rgba(0,255,80,0.45)) hue-rotate(90deg)" :
+                        hudPhase === "heartbeat"  ? "drop-shadow(0 0 20px rgba(232,65,24,0.65))" :
+                        hudPhase === "vortex"     ? "drop-shadow(0 0 18px rgba(167,139,250,0.6))" :
+                        hudPhase === "embers"     ? "drop-shadow(0 0 18px rgba(249,115,22,0.55))" :
+                        hudPhase === "pirotecnia" ? "drop-shadow(0 0 20px rgba(252,211,77,0.65))" :
+                        hudPhase === "aurora"     ? "drop-shadow(0 0 20px rgba(100,200,255,0.55)) hue-rotate(180deg)" :
+                        hudPhase === "radar"      ? "drop-shadow(0 0 16px rgba(0,255,100,0.5))" :
+                        hudPhase === "galaxia"    ? "drop-shadow(0 0 18px rgba(252,211,77,0.4)) saturate(1.3)" :
+                        hudPhase === "sonico"     ? "drop-shadow(0 0 22px rgba(255,255,255,0.5))" :
+                                                    "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
                       transition: "filter 0.7s ease",
                     }}
                   />
