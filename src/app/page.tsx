@@ -9,8 +9,9 @@ import WhatsAppFloatButton from "@/components/WhatsAppFloatButton"
 import SiteNav from "@/components/SiteNav"
 import Reveal from "@/components/Reveal"
 import Testimonials from "@/components/Testimonials"
-import FiestasCartagenaBanner from "@/components/FiestasCartagenaBanner"
-import FiestasCartagenaDecorations from "@/components/FiestasCartagenaDecorations"
+import SeasonalBanner from "@/components/SeasonalBanner"
+import SeasonalDecorations from "@/components/SeasonalDecorations"
+import GallerySection from "@/components/GallerySection"
 import {
   Clock,
   Calendar,
@@ -101,8 +102,8 @@ export default async function Home() {
       {/* Direct WhatsApp contact — always reachable, doesn't require going through /booking */}
       <WhatsAppFloatButton phone={settings?.phone} />
 
-      {/* ── Fiestas de Cartagena seasonal banner (above nav) ── */}
-      <FiestasCartagenaBanner />
+      {/* ── Seasonal banner — auto-cambia según fecha ── */}
+      <SeasonalBanner />
 
       {/* ── Nav ── */}
       <SiteNav shopName={shopName} />
@@ -110,11 +111,14 @@ export default async function Home() {
       {/* ── Content above background ── */}
       <div className="relative z-10">
 
-      {/* ── Fiestas floating decorations (fireworks, confetti) ── */}
-      <FiestasCartagenaDecorations />
+      {/* ── Seasonal decorations — fireworks Nov 1-15, nada el resto ── */}
+      <SeasonalDecorations />
 
       {/* ── Hero ── */}
       <HeroSection galleryImages={gallery.map((item) => item.imageUrl)} shopName={shopName} city={city} />
+
+      {/* ── Gallery / Portfolio ── */}
+      <GallerySection images={gallery.map((item) => item.imageUrl)} />
 
       {/* ── Services ── */}
       <section id="servicios" className="py-28 border-t border-white/5">

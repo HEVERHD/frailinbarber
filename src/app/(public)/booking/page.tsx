@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import FiestasCartagenaBanner from "@/components/FiestasCartagenaBanner"
-import FiestasCartagenaDecorations from "@/components/FiestasCartagenaDecorations"
+import SeasonalBanner from "@/components/SeasonalBanner"
+import SeasonalDecorations from "@/components/SeasonalDecorations"
 import {
   ArrowLeft,
   Clock,
@@ -387,9 +387,9 @@ export default function BookingPage() {
   // ── Render ─────────────────────────────────────────────────
   return (
     <div className="min-h-screen text-white">
-      {/* ── Halloween seasonal ── */}
-      <FiestasCartagenaBanner />
-      <FiestasCartagenaDecorations />
+      {/* ── Seasonal banner y decoraciones ── */}
+      <SeasonalBanner />
+      <SeasonalDecorations />
 
       {/* PWA install modal */}
       {showPwaModal && (
@@ -685,6 +685,24 @@ export default function BookingPage() {
             {/* Divider */}
             <div className="border-t border-white/5 mb-5" />
 
+            {/* Availability badge */}
+            {selectedDate && !loading && !dayOff && slots.length > 0 && (
+              <div className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-full mb-4 border ${
+                slots.length <= 2
+                  ? "bg-red-500/12 text-red-400 border-red-500/20"
+                  : slots.length <= 5
+                  ? "bg-amber-400/12 text-amber-400 border-amber-400/20"
+                  : "bg-emerald-400/12 text-emerald-400 border-emerald-400/20"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${
+                  slots.length <= 2 ? "bg-red-400" : slots.length <= 5 ? "bg-amber-400" : "bg-emerald-400"
+                }`} />
+                {slots.length <= 2
+                  ? `¡Solo ${slots.length} ${slots.length === 1 ? "horario" : "horarios"} disponible${slots.length === 1 ? "" : "s"}!`
+                  : `${slots.length} horarios disponibles`}
+              </div>
+            )}
+
             {/* Time slots */}
             {!selectedDate ? (
               <p className="text-center text-white/25 text-sm py-8">Selecciona un día para ver los horarios</p>
@@ -946,9 +964,10 @@ export default function BookingPage() {
       </div>
 
       {/* ── Sticky mini-summary bar ── */}
-      {selectedService && step !== "barber" && step !== "confirm" && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0d0d0d]/95 backdrop-blur-md border-t border-white/8 px-4 py-3 safe-area-inset-bottom">
+      {(selectedBarber || selectedService) && step !== "confirm" && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#000a1a]/96 backdrop-blur-md border-t border-[#F5C842]/10 px-4 py-3">
           <div className="max-w-md mx-auto flex items-center gap-3">
+            {/* Avatar */}
             {selectedBarber && (selectedBarber.avatarUrl || selectedBarber.image) ? (
               <img
                 src={selectedBarber.avatarUrl || selectedBarber.image || ""}
@@ -959,15 +978,35 @@ export default function BookingPage() {
               <div className="w-8 h-8 rounded-full bg-[#e84118]/20 flex items-center justify-center flex-shrink-0 text-[#e84118] font-bold text-sm">
                 {(selectedBarber.name || "B")[0].toUpperCase()}
               </div>
-            ) : null}
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-white/5 flex-shrink-0" />
+            )}
+
+            {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white leading-tight truncate">{selectedService.name}</p>
-              <p className="text-xs text-white/35 truncate">
-                {selectedBarber?.name || ""}
-                {selectedTime ? ` · ${formatTime(selectedTime)}` : ""}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {selectedBarber && (
+                  <span className="text-[11px] text-white/50 font-medium">{selectedBarber.name}</span>
+                )}
+                {selectedService && (
+                  <>
+                    {selectedBarber && <span className="text-white/20 text-[10px]">›</span>}
+                    <span className="text-[11px] text-white font-bold truncate">{selectedService.name}</span>
+                  </>
+                )}
+              </div>
+              {(selectedDate || selectedTime) && (
+                <p className="text-[10px] text-[#F5C842]/70 font-medium mt-0.5">
+                  {selectedDate ? new Intl.DateTimeFormat("es-CO", { weekday: "short", day: "numeric", month: "short", timeZone: "America/Bogota" }).format(new Date(selectedDate + "T12:00:00")) : ""}
+                  {selectedTime ? ` · ${formatTime(selectedTime)}` : ""}
+                </p>
+              )}
             </div>
-            <p className="text-sm font-bold text-[#e84118] flex-shrink-0">{formatPrice(selectedService.price)}</p>
+
+            {/* Price */}
+            {selectedService && (
+              <p className="text-sm font-bold text-[#e84118] flex-shrink-0">{formatPrice(selectedService.price)}</p>
+            )}
           </div>
         </div>
       )}

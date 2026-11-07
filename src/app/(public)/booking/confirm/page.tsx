@@ -58,6 +58,7 @@ function ConfirmContent() {
   const [animate, setAnimate] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [confetti, setConfetti] = useState(false)
+  const [pushState, setPushState] = useState<"idle" | "loading" | "granted" | "denied" | "unsupported">("idle")
 
   const service     = searchParams.get("service") || ""
   const date        = searchParams.get("date") || ""
@@ -72,7 +73,47 @@ function ConfirmContent() {
     setTimeout(() => { setAnimate(true); setConfetti(true) }, 100)
     setTimeout(() => setShowDetails(true), 600)
     setTimeout(() => setConfetti(false), 4000)
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported")
+    }
   }, [])
+
+  const handlePushSubscribe = async () => {
+    if (!("Notification" in window) || !("serviceWorker" in navigator)) {
+      setPushState("unsupported")
+      return
+    }
+    setPushState("loading")
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== "granted") {
+        setPushState("denied")
+        return
+      }
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      if (!vapidKey) { setPushState("unsupported"); return }
+      const reg = await navigator.serviceWorker.ready
+      const existing = await reg.pushManager.getSubscription()
+      const sub = existing ?? await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapidKey,
+      })
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscription: sub.toJSON(),
+          appointmentDate: date,
+          appointmentTime: time,
+          service,
+          barber,
+        }),
+      })
+      setPushState("granted")
+    } catch {
+      setPushState("denied")
+    }
+  }
 
   const formatPrice = (p: string) =>
     new Intl.NumberFormat("en-US", {
@@ -203,13 +244,54 @@ function ConfirmContent() {
             </div>
 
             {/* WhatsApp notice */}
-            <div className="bg-green-900/20 border border-green-800/30 rounded-xl p-3.5 flex items-center gap-3 mb-5">
+            <div className="bg-green-900/20 border border-green-800/30 rounded-xl p-3.5 flex items-center gap-3 mb-4">
               <span className="text-2xl">📲</span>
               <div>
                 <p className="text-sm font-medium text-green-400">Confirmación por WhatsApp</p>
                 <p className="text-xs text-white/40">Revisa tu WhatsApp para los detalles</p>
               </div>
             </div>
+
+            {/* Push notification opt-in */}
+            {pushState !== "unsupported" && (
+              <div className={`rounded-xl border p-4 mb-5 transition-all duration-500 ${
+                pushState === "granted"
+                  ? "bg-amber-400/8 border-amber-400/20"
+                  : "bg-white/4 border-white/10"
+              }`}>
+                {pushState === "granted" ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🔔</span>
+                    <div>
+                      <p className="text-sm font-medium text-amber-400">¡Recordatorio activado!</p>
+                      <p className="text-xs text-white/40">Te avisaremos 1 hora antes de tu cita</p>
+                    </div>
+                  </div>
+                ) : pushState === "denied" ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">🔕</span>
+                    <p className="text-xs text-white/40">Notificaciones bloqueadas. Puedes activarlas desde la configuración del navegador.</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">🔔</span>
+                      <div>
+                        <p className="text-sm font-medium text-white">Recordatorio 1h antes</p>
+                        <p className="text-xs text-white/40">Recibe una notificación antes de tu cita</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handlePushSubscribe}
+                      disabled={pushState === "loading"}
+                      className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-amber-400/15 border border-amber-400/30 text-amber-400 text-xs font-semibold hover:bg-amber-400/25 transition disabled:opacity-50"
+                    >
+                      {pushState === "loading" ? "..." : "Activar"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Actions */}
             <div className="space-y-3">

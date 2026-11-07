@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowUpRight, CaretDown as ChevronDown } from "@phosphor-icons/react"
@@ -79,21 +79,26 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
   const [scrolled, setScrolled] = useState(false)
   const [hudPhase, setHudPhase] = useState<HudPhase>("sparks")
   const [hudFading, setHudFading] = useState(false)
+  const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Cycle through all 5 HUD phases: sparks → vortex → heartbeat → embers → glitch → …
-  useEffect(() => {
-    const cycle = setInterval(() => {
-      setHudFading(true)
-      setTimeout(() => {
-        setHudPhase(p => {
-          const idx = HUD_PHASES.indexOf(p)
-          return HUD_PHASES[(idx + 1) % HUD_PHASES.length]
-        })
-        setHudFading(false)
-      }, 700)
-    }, 5500)
-    return () => clearInterval(cycle)
+  const advanceHud = useCallback(() => {
+    setHudFading(true)
+    setTimeout(() => {
+      setHudPhase(p => HUD_PHASES[(HUD_PHASES.indexOf(p) + 1) % HUD_PHASES.length])
+      setHudFading(false)
+    }, 700)
   }, [])
+
+  const handleHudClick = useCallback(() => {
+    advanceHud()
+    if (cycleRef.current) clearInterval(cycleRef.current)
+    cycleRef.current = setInterval(advanceHud, 5500)
+  }, [advanceHud])
+
+  useEffect(() => {
+    cycleRef.current = setInterval(advanceHud, 5500)
+    return () => { if (cycleRef.current) clearInterval(cycleRef.current) }
+  }, [advanceHud])
 
   // Hide scroll indicator on scroll
   useEffect(() => {
@@ -446,7 +451,9 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
             {/* ─── HUD Logo — top on mobile, right on desktop ─── */}
             <div className="order-1 lg:order-2 flex items-center justify-center">
               <div
-                className="fs-logo-in fs-hud relative flex items-center justify-center mx-auto w-[240px] h-[240px] lg:w-[400px] lg:h-[400px]"
+                className="fs-logo-in fs-hud relative flex items-center justify-center mx-auto w-[240px] h-[240px] lg:w-[400px] lg:h-[400px] cursor-pointer select-none"
+                onClick={handleHudClick}
+                title="Toca para siguiente fase"
               >
 
                 {/* ── Photo slider (behind everything) ── */}
