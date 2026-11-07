@@ -1,5 +1,7 @@
 "use client"
 
+import PicoDecorations from "./PicoDecorations"
+
 // Firework burst positions: x%, y%, colors (yellow/blue/red = Colombian flag), delay, repeat duration
 const FIREWORKS: Array<{
   x: number; y: number
@@ -146,6 +148,9 @@ export default function FiestasCartagenaDecorations() {
           />
         ))}
       </div>
+
+      {/* ── Pico sound systems + cadenetas ── */}
+      <PicoDecorations />
     </>
   )
 }
