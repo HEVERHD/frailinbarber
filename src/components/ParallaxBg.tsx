@@ -2,8 +2,11 @@
 
 import { useEffect, useRef } from "react"
 import Image from "next/image"
+import { useSeason } from "@/lib/season"
 
 export default function ParallaxBg() {
+  const season = useSeason()
+  const isXmas = season === "navidad" || season === "anoNuevo"
   const imgRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -56,10 +59,14 @@ export default function ParallaxBg() {
           opacity: 0.65,
         }}
       />
-      {/* Subtle blue color bleed — night sky for fireworks */}
+      {/* Color bleed — blue night sky by default; Navidad adds warm red + pine green light */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: "rgba(0,15,60,0.20)" }}
+        style={{
+          background: isXmas
+            ? "radial-gradient(ellipse at 15% 10%, rgba(185,28,28,0.22) 0%, transparent 55%), radial-gradient(ellipse at 90% 85%, rgba(21,128,61,0.22) 0%, transparent 55%), rgba(0,15,40,0.15)"
+            : "rgba(0,15,60,0.20)",
+        }}
       />
     </div>
   )

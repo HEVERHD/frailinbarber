@@ -5,6 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { ArrowUpRight, CaretDown as ChevronDown } from "@phosphor-icons/react"
 import LiveQueueBadge from "@/components/LiveQueueBadge"
+import { useSeason, upcomingYear } from "@/lib/season"
 
 const PHRASES = [
   "sin esperas.",
@@ -26,7 +27,17 @@ const HUD_SPARKS = [
 ]
 
 const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch", "pirotecnia", "aurora", "radar", "galaxia", "sonico"] as const
-type HudPhase = typeof HUD_PHASES[number]
+// "nevada" solo entra en la rotación en Navidad / Año Nuevo, y abre el ciclo
+type HudPhase = typeof HUD_PHASES[number] | "nevada"
+const HUD_PHASES_XMAS: readonly HudPhase[] = ["nevada", ...HUD_PHASES]
+
+// Nevada — flakes falling inside the HUD circle
+const HUD_SNOW = Array.from({ length: 16 }, (_, i) => ({
+  l: `${18 + ((i * 29) % 64)}%`,
+  s: 2 + (i % 3),
+  d: `${2.6 + (i % 4) * 0.5}s`,
+  dl: `-${(i * 0.37) % 3}s`,
+}))
 
 const HUD_EMBERS = [
   { l: "50%", b: "28%", s: 3, d: "2.2s", dl: "0s",    an: "hw-ember-c" },
@@ -77,17 +88,25 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
   const [started, setStarted] = useState(false)
   const [currentPhoto, setCurrentPhoto] = useState(0)
   const [scrolled, setScrolled] = useState(false)
+  const season = useSeason()
+  const isXmas = season === "navidad" || season === "anoNuevo"
+  const hudPhases: readonly HudPhase[] = isXmas ? HUD_PHASES_XMAS : HUD_PHASES
   const [hudPhase, setHudPhase] = useState<HudPhase>("sparks")
   const [hudFading, setHudFading] = useState(false)
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Navidad abre con la nevada
+  useEffect(() => {
+    if (isXmas) setHudPhase("nevada")
+  }, [isXmas])
+
   const advanceHud = useCallback(() => {
     setHudFading(true)
     setTimeout(() => {
-      setHudPhase(p => HUD_PHASES[(HUD_PHASES.indexOf(p) + 1) % HUD_PHASES.length])
+      setHudPhase(p => hudPhases[(hudPhases.indexOf(p) + 1) % hudPhases.length])
       setHudFading(false)
     }, 700)
-  }, [])
+  }, [hudPhases])
 
   const handleHudClick = useCallback(() => {
     advanceHud()
@@ -400,6 +419,15 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           100%{ opacity: 0; }
         }
 
+        /* ── HUD: nevada ── */
+        @keyframes hw-snow-fall {
+          0%   { transform: translateY(-10%) translateX(0);    opacity: 0; }
+          15%  { opacity: 1; }
+          50%  { transform: translateY(45%)  translateX(6px);  }
+          85%  { opacity: 0.8; }
+          100% { transform: translateY(100%) translateX(-4px); opacity: 0; }
+        }
+
         /* ── HUD: sonic pulse rings ── */
         @keyframes hw-sonic-ring {
           0%   { transform: scale(0.35); opacity: 0.9; }
@@ -418,8 +446,9 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
         <div className="absolute inset-0 bg-gradient-to-t from-[#000a1a]/80 via-[#00050f]/30 to-transparent pointer-events-none lg:hidden" />
         <div className="absolute inset-0 fs-dot-grid pointer-events-none" />
         <div className="fs-orb-1 absolute -top-[15%] -left-[5%]  w-[700px] h-[700px] rounded-full bg-[#e84118]/6 blur-[140px] pointer-events-none" />
-        <div className="fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full bg-[#7c3aed]/6 blur-[110px] pointer-events-none" />
-        <div className="absolute bottom-[15%] right-[20%]          w-[350px] h-[350px] rounded-full bg-[#7c3aed]/4 blur-[90px]  pointer-events-none" />
+        {/* Navidad: orbes verde pino en vez de violeta */}
+        <div className={`fs-orb-2 absolute  top-[5%]  right-[-10%] w-[550px] h-[550px] rounded-full blur-[110px] pointer-events-none ${isXmas ? "bg-[#16a34a]/8" : "bg-[#7c3aed]/6"}`} />
+        <div className={`absolute bottom-[15%] right-[20%]          w-[350px] h-[350px] rounded-full blur-[90px]  pointer-events-none ${isXmas ? "bg-[#facc15]/5" : "bg-[#7c3aed]/4"}`} />
 
         {/* Scan line */}
         <div className="fs-scan absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#e84118]/25 to-transparent pointer-events-none z-10" />
@@ -799,6 +828,36 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   />
                 </div>
 
+                {/* ── Nevada / snowfall phase (Navidad) ── */}
+                <div
+                  className="absolute pointer-events-none overflow-hidden rounded-full"
+                  style={{ inset: "13%", opacity: hudPhase === "nevada" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Each flake rides a full-size layer so translateY(%) spans the whole circle */}
+                  {HUD_SNOW.map((f, i) => (
+                    <div
+                      key={i}
+                      className="absolute inset-0"
+                      style={{ animation: `hw-snow-fall ${f.d} ${f.dl} linear infinite` }}
+                    >
+                      <div
+                        className="absolute top-0 rounded-full bg-white"
+                        style={{
+                          left: f.l,
+                          width: f.s,
+                          height: f.s,
+                          boxShadow: "0 0 5px rgba(255,255,255,0.8)",
+                        }}
+                      />
+                    </div>
+                  ))}
+                  {/* Cold glow at the bottom, like snow piling up */}
+                  <div
+                    className="absolute bottom-0 left-0 right-0 h-1/4"
+                    style={{ background: "radial-gradient(ellipse at bottom, rgba(220,240,255,0.25) 0%, transparent 70%)" }}
+                  />
+                </div>
+
                 {/* ── Sonic pulse rings phase ── */}
                 <div
                   className="absolute inset-0 pointer-events-none"
@@ -847,6 +906,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                       hudPhase === "radar"      ? "radial-gradient(circle,rgba(0,220,100,0.20) 0%,transparent 70%)" :
                       hudPhase === "galaxia"    ? "radial-gradient(circle,rgba(252,211,77,0.15) 0%,transparent 70%)" :
                       hudPhase === "sonico"     ? "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" :
+                      hudPhase === "nevada"     ? "radial-gradient(circle,rgba(220,38,38,0.22) 0%,rgba(22,163,74,0.12) 45%,transparent 70%)" :
                                                   "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
                     transition: "background 0.7s ease",
                   }}
@@ -870,6 +930,7 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                         hudPhase === "radar"      ? "drop-shadow(0 0 16px rgba(0,255,100,0.5))" :
                         hudPhase === "galaxia"    ? "drop-shadow(0 0 18px rgba(252,211,77,0.4)) saturate(1.3)" :
                         hudPhase === "sonico"     ? "drop-shadow(0 0 22px rgba(255,255,255,0.5))" :
+                        hudPhase === "nevada"     ? "drop-shadow(0 0 20px rgba(255,255,255,0.55)) drop-shadow(0 0 8px rgba(220,38,38,0.4))" :
                                                     "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
                       transition: "filter 0.7s ease",
                     }}
@@ -890,11 +951,25 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
             {/* ─── Text — bottom on mobile, left on desktop ─── */}
             <div className="order-2 lg:order-1 text-center lg:text-left">
 
-              {/* Fiestas seasonal badge */}
-              <div className="inline-flex items-center gap-2 border border-[#F5C842]/40 bg-[#F5C842]/12 text-[#FDE68A] text-[10px] font-black px-3 py-1.5 rounded-full mb-3 tracking-[0.22em] uppercase"
-                style={{ animation: "fs-dot-blink 2.5s ease-in-out infinite" }}>
-                🎊 Fiestas de Independencia · 11 Nov
-              </div>
+              {/* Seasonal badge */}
+              {season === "fiestas" && (
+                <div className="flex w-fit mx-auto sm:mx-0 sm:inline-flex items-center gap-2 border border-[#F5C842]/40 bg-[#F5C842]/12 text-[#FDE68A] text-[10px] font-black px-3 py-1.5 rounded-full mb-3 tracking-[0.22em] uppercase"
+                  style={{ animation: "fs-dot-blink 2.5s ease-in-out infinite" }}>
+                  🎊 Fiestas de Independencia · 11 Nov
+                </div>
+              )}
+              {season === "navidad" && (
+                <div className="flex w-fit mx-auto sm:mx-0 sm:inline-flex items-center gap-2 border border-[#dc2626]/40 bg-gradient-to-r from-[#14532d]/40 to-[#7f1d1d]/40 text-[#FDE68A] text-[10px] font-black px-3 py-1.5 rounded-full mb-3 tracking-[0.22em] uppercase"
+                  style={{ animation: "fs-dot-blink 2.5s ease-in-out infinite" }}>
+                  🎄 <span className="hidden sm:inline">Temporada navideña</span><span className="sm:hidden">Navidad</span> · Reserva tu 24 y 31
+                </div>
+              )}
+              {season === "anoNuevo" && (
+                <div className="flex w-fit mx-auto sm:mx-0 sm:inline-flex items-center gap-2 border border-[#F5C842]/40 bg-[#F5C842]/12 text-[#FDE68A] text-[10px] font-black px-3 py-1.5 rounded-full mb-3 tracking-[0.22em] uppercase"
+                  style={{ animation: "fs-dot-blink 2.5s ease-in-out infinite" }}>
+                  🎆 Feliz {upcomingYear()}<span className="hidden sm:inline"> · Tu primer corte del año</span>
+                </div>
+              )}
 
               {/* Location badge */}
               <div className="fs-badge inline-flex items-center gap-2.5 border border-[#e84118]/25 bg-[#e84118]/8 text-[#e84118] text-[11px] font-bold px-4 py-2 rounded-full mb-6 lg:mb-8 tracking-[0.2em]">

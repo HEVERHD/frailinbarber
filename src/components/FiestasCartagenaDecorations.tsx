@@ -47,7 +47,8 @@ function getParticles(numParticles: number, dist: number) {
   return Array.from({ length: numParticles }, (_, i) => {
     const angle = (i / numParticles) * Math.PI * 2
     const d = dist + (i % 3) * 10
-    return { tx: Math.cos(angle) * d, ty: Math.sin(angle) * d }
+    // Rounded: server and browser Math.cos can differ in the last decimal → hydration mismatch
+    return { tx: Math.round(Math.cos(angle) * d), ty: Math.round(Math.sin(angle) * d) }
   })
 }
 

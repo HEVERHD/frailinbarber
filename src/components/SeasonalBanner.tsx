@@ -1,14 +1,14 @@
 "use client"
 
 import FiestasCartagenaBanner from "./FiestasCartagenaBanner"
+import NavidadBanner from "./NavidadBanner"
 import DefaultBanner from "./DefaultBanner"
-
-// Fiestas de Independencia de Cartagena — 1 al 15 de noviembre
-function isFiestasSeason() {
-  const d = new Date()
-  return d.getMonth() === 10 && d.getDate() >= 1 && d.getDate() <= 15
-}
+import { useSeason } from "@/lib/season"
 
 export default function SeasonalBanner() {
-  return isFiestasSeason() ? <FiestasCartagenaBanner /> : <DefaultBanner />
+  const season = useSeason()
+  if (season === "fiestas") return <FiestasCartagenaBanner />
+  if (season === "navidad") return <NavidadBanner />
+  if (season === "anoNuevo") return <NavidadBanner newYear />
+  return <DefaultBanner />
 }
