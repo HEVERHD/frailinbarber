@@ -6,6 +6,7 @@ import Image from "next/image"
 import Link from "next/link"
 import SeasonalBanner from "@/components/SeasonalBanner"
 import SeasonalDecorations from "@/components/SeasonalDecorations"
+import { useSeason } from "@/lib/season"
 import {
   ArrowLeft,
   Clock,
@@ -71,6 +72,8 @@ const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"]
 
 export default function BookingPage() {
   const router = useRouter()
+  const season = useSeason()
+  const isXmas = season === "navidad" || season === "anoNuevo"
   const [step, setStep] = useState<Step>("barber")
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null)
@@ -457,11 +460,18 @@ export default function BookingPage() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#001030]/55 via-transparent to-[#000a1a]/65" />
       </div>
 
-      {/* Ambient glow — gold top, blue bottom */}
+      {/* Ambient glow — gold top; bottom is blue, or red + pine green in Navidad */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[#F5C842]/8 rounded-full blur-[120px] pointer-events-none z-10" />
-      <div className="fixed bottom-0 right-1/4 w-[300px] h-[200px] bg-[#3B82F6]/6 rounded-full blur-[100px] pointer-events-none z-10" />
+      {isXmas ? (
+        <>
+          <div className="fixed bottom-0 left-0 w-[320px] h-[240px] bg-[#b91c1c]/12 rounded-full blur-[100px] pointer-events-none z-10" />
+          <div className="fixed bottom-0 right-0 w-[320px] h-[240px] bg-[#15803d]/12 rounded-full blur-[100px] pointer-events-none z-10" />
+        </>
+      ) : (
+        <div className="fixed bottom-0 right-1/4 w-[300px] h-[200px] bg-[#3B82F6]/6 rounded-full blur-[100px] pointer-events-none z-10" />
+      )}
 
-      {/* Extra top padding to clear the fixed Halloween banner (32px) */}
+      {/* Extra top padding to clear the fixed seasonal banner (32px) */}
       <div className="relative z-10 max-w-md mx-auto px-4 pt-[72px] pb-20">
 
         {/* Header */}
