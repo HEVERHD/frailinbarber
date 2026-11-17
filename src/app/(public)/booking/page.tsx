@@ -342,7 +342,19 @@ export default function BookingPage() {
   const todayStr = toLocalDateStr(todayLocal)
   const currentWeekStart = getWeekStart(todayLocal)
   const weekDays = getWeekDays(weekStart)
-  const monthLabel = weekStart.toLocaleDateString("es-ES", { month: "long", year: "numeric" })
+  // The week can span two months (e.g. Nov 30 – Dec 6): name both
+  const monthName = (d: Date) => {
+    const m = d.toLocaleDateString("es-ES", { month: "long" })
+    return m.charAt(0).toUpperCase() + m.slice(1)
+  }
+  const firstDay = weekDays[0]
+  const lastDay = weekDays[weekDays.length - 1]
+  const monthLabel =
+    firstDay.getMonth() === lastDay.getMonth()
+      ? `${monthName(firstDay)} ${firstDay.getFullYear()}`
+      : firstDay.getFullYear() === lastDay.getFullYear()
+        ? `${monthName(firstDay)} – ${monthName(lastDay)} ${lastDay.getFullYear()}`
+        : `${monthName(firstDay)} ${firstDay.getFullYear()} – ${monthName(lastDay)} ${lastDay.getFullYear()}`
 
   const handleDateSelect = (date: Date) => {
     const d = new Date(date)
@@ -661,7 +673,7 @@ export default function BookingPage() {
               >
                 <ChevronLeft weight="duotone" size={16} />
               </button>
-              <span className="text-sm font-semibold capitalize text-white/85">{monthLabel}</span>
+              <span className="text-sm font-semibold text-white/85">{monthLabel}</span>
               <button onClick={nextWeek} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition">
                 <ChevronRight weight="duotone" size={16} />
               </button>
