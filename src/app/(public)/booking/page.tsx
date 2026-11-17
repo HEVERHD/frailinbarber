@@ -476,7 +476,7 @@ export default function BookingPage() {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-10">
-          <Link href="/" className="flex items-center gap-1.5 text-white/30 hover:text-white/70 transition text-sm">
+          <Link href="/" className="flex items-center gap-1.5 text-white/60 hover:text-white transition text-sm">
             <ArrowLeft weight="duotone" size={15} />
             <span>Inicio</span>
           </Link>
@@ -502,7 +502,7 @@ export default function BookingPage() {
                 return (
                   <div key={s} className="flex flex-col items-center gap-1.5">
                     <div className={`rounded-full transition-all duration-500 ${active ? "h-1.5 w-8 bg-[#e84118]" : "h-1.5 w-5 bg-white/10"}`} />
-                    <span className={`text-[9px] font-semibold uppercase tracking-widest transition-colors duration-300 ${isCurrent ? "text-[#e84118]" : active ? "text-white/35" : "text-white/15"}`}>
+                    <span className={`text-[9px] font-semibold uppercase tracking-widest transition-colors duration-300 ${isCurrent ? "text-[#e84118]" : active ? "text-white/60" : "text-white/35"}`}>
                       {stepLabels[s] ?? ""}
                     </span>
                   </div>
@@ -591,8 +591,8 @@ export default function BookingPage() {
                         <p className="text-sm text-white/40 mt-1 pl-5">{service.description}</p>
                       )}
                       <div className="flex items-center gap-1.5 mt-2.5 pl-5">
-                        <Clock weight="duotone" size={12} className="text-white/25" />
-                        <span className="text-xs text-white/30">{service.duration} min</span>
+                        <Clock weight="duotone" size={12} className="text-white/45" />
+                        <span className="text-xs text-white/55">{service.duration} min</span>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
@@ -632,7 +632,7 @@ export default function BookingPage() {
               >
                 <ChevronLeft weight="duotone" size={16} />
               </button>
-              <span className="text-sm font-semibold capitalize text-white/60">{monthLabel}</span>
+              <span className="text-sm font-semibold capitalize text-white/85">{monthLabel}</span>
               <button onClick={nextWeek} className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition">
                 <ChevronRight weight="duotone" size={16} />
               </button>
@@ -650,7 +650,7 @@ export default function BookingPage() {
                 const isDisabled = isPast || isOff
                 return (
                   <div key={i} className="flex flex-col items-center gap-1">
-                    <span className="text-[10px] font-medium text-white/25 uppercase">{DAY_LABELS[i]}</span>
+                    <span className="text-[11px] font-bold text-white/65 uppercase">{DAY_LABELS[i]}</span>
                     <button
                       onClick={() => handleDateSelect(day)}
                       disabled={isDisabled}
@@ -658,10 +658,10 @@ export default function BookingPage() {
                         ${isSelected
                           ? "bg-[#e84118] text-white shadow-lg shadow-[#e84118]/30"
                           : isDisabled
-                          ? "text-white/15 cursor-not-allowed"
+                          ? "text-white/30 cursor-not-allowed"
                           : isToday
                           ? "bg-white/8 text-white ring-1 ring-white/20"
-                          : "text-white/60 hover:bg-white/8 hover:text-white"
+                          : "text-white/90 bg-white/5 hover:bg-white/10 hover:text-white"
                         }`}
                     >
                       {day.getDate()}
@@ -686,7 +686,7 @@ export default function BookingPage() {
             </div>
 
             {/* Legend */}
-            <div className="flex items-center justify-end gap-3 mb-5 text-[10px] text-white/30">
+            <div className="flex items-center justify-end gap-3 mb-5 text-[11px] text-white/60">
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Disponible</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Pocas horas</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-white/20 inline-block" /> Completo</span>
@@ -715,7 +715,7 @@ export default function BookingPage() {
 
             {/* Time slots */}
             {!selectedDate ? (
-              <p className="text-center text-white/25 text-sm py-8">Selecciona un día para ver los horarios</p>
+              <p className="text-center text-white/55 text-sm py-8">Selecciona un día para ver los horarios</p>
             ) : loading ? (
               <div className="space-y-5">
                 {[0, 1].map((g) => (
@@ -735,7 +735,7 @@ export default function BookingPage() {
                   <CalendarX weight="duotone" size={22} className="text-white/30" />
                 </div>
                 <p className="text-white/50 font-medium">Este día no hay servicio</p>
-                <p className="text-sm text-white/25 mt-1">Elige otra fecha</p>
+                <p className="text-sm text-white/50 mt-1">Elige otra fecha</p>
               </div>
             ) : slots.length === 0 ? (
               <div className="text-center py-4">
@@ -777,7 +777,7 @@ export default function BookingPage() {
                   .filter((group) => group.items.length > 0)
                   .map((group) => (
                     <div key={group.label}>
-                      <p className="text-[11px] font-bold text-white/25 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                      <p className="text-[11px] font-bold text-white/65 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
                         <span>{group.emoji}</span>{group.label}
                       </p>
                       <div className="grid grid-cols-4 gap-2">
@@ -794,11 +794,11 @@ export default function BookingPage() {
                               className={`py-3 rounded-xl border transition-all duration-200 flex flex-col items-center gap-0.5 active:scale-95
                                 ${isSelected
                                   ? "bg-[#e84118] border-[#e84118] text-white shadow-lg shadow-[#e84118]/30 scale-[1.04] ring-2 ring-[#e84118]/20 ring-offset-2 ring-offset-transparent"
-                                  : "border-white/10 bg-[#1a1a1a] text-white/60 hover:border-[#e84118]/40 hover:bg-[#e84118]/5 hover:text-white"
+                                  : "border-white/15 bg-[#1a1a1a] text-white hover:border-[#e84118]/60 hover:bg-[#e84118]/10"
                                 }`}
                             >
-                              <span className="font-bold text-[13px] leading-tight">{timeStr}</span>
-                              <span className={`text-[10px] leading-tight ${isSelected ? "text-white/75" : "text-white/25"}`}>{period}</span>
+                              <span className="font-bold text-[14px] leading-tight">{timeStr}</span>
+                              <span className={`text-[10px] font-semibold leading-tight ${isSelected ? "text-white/80" : "text-white/55"}`}>{period}</span>
                             </button>
                           )
                         })}
