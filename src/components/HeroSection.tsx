@@ -27,9 +27,29 @@ const HUD_SPARKS = [
 ]
 
 const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch", "pirotecnia", "aurora", "radar", "galaxia", "sonico"] as const
-// "nevada" solo entra en la rotación en Navidad / Año Nuevo, y abre el ciclo
-type HudPhase = typeof HUD_PHASES[number] | "nevada"
-const HUD_PHASES_XMAS: readonly HudPhase[] = ["nevada", ...HUD_PHASES]
+// Fases de temporada: nevada + bola navideña + reloj de Año Nuevo.
+// En temporada salen radar / glitch / galaxia para que el ciclo no se alargue.
+type HudPhase = typeof HUD_PHASES[number] | "nevada" | "esfera" | "reloj"
+const OFF_SEASON_ONLY: readonly HudPhase[] = ["radar", "glitch", "galaxia"]
+const BASE_IN_SEASON = HUD_PHASES.filter((p) => !OFF_SEASON_ONLY.includes(p))
+const HUD_PHASES_XMAS: readonly HudPhase[] = ["nevada", "esfera", "reloj", ...BASE_IN_SEASON]
+const HUD_PHASES_NEW_YEAR: readonly HudPhase[] = ["reloj", "nevada", ...BASE_IN_SEASON]
+
+// Bola navideña — extra flakes only visible while the globe is being shaken
+const GLOBE_STORM = Array.from({ length: 22 }, (_, i) => ({
+  l: `${12 + ((i * 41) % 76)}%`,
+  s: 2 + (i % 3),
+  d: `${0.9 + (i % 4) * 0.25}s`,
+  dl: `-${(i * 0.13) % 1}s`,
+}))
+
+// Reloj de Año Nuevo — 12 hour ticks + golden fireworks on Dec 31 / Año Nuevo
+const CLOCK_TICKS = Array.from({ length: 12 }, (_, i) => i * 30)
+const GOLD_WAVES = [
+  { color: "#FDE68A", glow: "#F59E0B", delay: 0,   pts: _piroRing(58) },
+  { color: "#FACC15", glow: "#CA8A04", delay: 0.6, pts: _piroRing(48) },
+  { color: "#FFFFFF", glow: "#FDE68A", delay: 1.2, pts: _piroRing(64) },
+]
 
 // Nevada — flakes falling inside the HUD circle
 const HUD_SNOW = Array.from({ length: 16 }, (_, i) => ({
@@ -90,15 +110,27 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
   const [scrolled, setScrolled] = useState(false)
   const season = useSeason()
   const isXmas = season === "navidad" || season === "anoNuevo"
-  const hudPhases: readonly HudPhase[] = isXmas ? HUD_PHASES_XMAS : HUD_PHASES
+  const hudPhases: readonly HudPhase[] =
+    season === "navidad" ? HUD_PHASES_XMAS : season === "anoNuevo" ? HUD_PHASES_NEW_YEAR : HUD_PHASES
   const [hudPhase, setHudPhase] = useState<HudPhase>("sparks")
   const [hudFading, setHudFading] = useState(false)
   const cycleRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const hudRef = useRef<HTMLDivElement>(null)
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([])
+  const [globeShaking, setGlobeShaking] = useState(false)
+  // Reloj: fraction of the day elapsed (0 → 1 at midnight) + hand angles, Colombia time
+  const [clock, setClock] = useState<{ dayFrac: number; hourDeg: number; minDeg: number; dec31: boolean } | null>(null)
+  const [reducedMotion, setReducedMotion] = useState(false)
 
-  // Navidad abre con la nevada
   useEffect(() => {
-    if (isXmas) setHudPhase("nevada")
-  }, [isXmas])
+    setReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+  }, [])
+
+  // Temporada abre con su fase: nevada en Navidad, reloj en Año Nuevo
+  useEffect(() => {
+    if (season === "navidad") setHudPhase("nevada")
+    else if (season === "anoNuevo") setHudPhase("reloj")
+  }, [season])
 
   const advanceHud = useCallback(() => {
     setHudFading(true)
@@ -108,16 +140,98 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
     }, 700)
   }, [hudPhases])
 
-  const handleHudClick = useCallback(() => {
-    advanceHud()
+  const restartCycle = useCallback(() => {
     if (cycleRef.current) clearInterval(cycleRef.current)
     cycleRef.current = setInterval(advanceHud, 5500)
   }, [advanceHud])
+
+  const handleHudClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Onda expansiva desde el punto tocado
+    const rect = e.currentTarget.getBoundingClientRect()
+    const id = Date.now()
+    setRipples(r => [...r, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }])
+    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 800)
+
+    // iOS only fires deviceorientation after an explicit permission request from a gesture
+    const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }
+    DOE?.requestPermission?.().catch(() => {})
+
+    if (hudPhase === "esfera") {
+      // La bola se sacude en vez de cambiar de fase; da tiempo de verla nevar
+      setGlobeShaking(true)
+      setTimeout(() => setGlobeShaking(false), 1600)
+      restartCycle()
+      return
+    }
+    advanceHud()
+    restartCycle()
+  }, [hudPhase, advanceHud, restartCycle])
 
   useEffect(() => {
     cycleRef.current = setInterval(advanceHud, 5500)
     return () => { if (cycleRef.current) clearInterval(cycleRef.current) }
   }, [advanceHud])
+
+  // Reloj — refresh every 20s while the clock phase is on screen
+  useEffect(() => {
+    if (hudPhase !== "reloj") return
+    const tick = () => {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Bogota", hour: "numeric", minute: "numeric", second: "numeric",
+        month: "numeric", day: "numeric", hourCycle: "h23",
+      }).formatToParts(new Date())
+      const get = (t: string) => Number(parts.find(p => p.type === t)?.value ?? 0)
+      const h = get("hour"), m = get("minute"), s = get("second")
+      setClock({
+        dayFrac: (h * 3600 + m * 60 + s) / 86400,
+        hourDeg: ((h % 12) + m / 60) * 30,
+        minDeg: (m + s / 60) * 6,
+        dec31: get("month") === 12 && get("day") === 31,
+      })
+    }
+    tick()
+    const id = setInterval(tick, 20_000)
+    return () => clearInterval(id)
+  }, [hudPhase])
+
+  // Inclinación 3D — mouse on desktop, gyroscope on phones. Written straight to the
+  // DOM (no re-render per frame)
+  useEffect(() => {
+    const el = hudRef.current
+    if (!el || reducedMotion) return
+    const MAX = 12
+    let frame = 0
+    const apply = (rx: number, ry: number) => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`
+      })
+    }
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return
+      const r = el.getBoundingClientRect()
+      const nx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2)
+      const ny = (e.clientY - (r.top + r.height / 2)) / (r.height / 2)
+      apply(Math.max(-1, Math.min(1, ny)) * -MAX, Math.max(-1, Math.min(1, nx)) * MAX)
+    }
+    const onLeave = () => apply(0, 0)
+    const onOrient = (e: DeviceOrientationEvent) => {
+      if (e.beta == null || e.gamma == null) return
+      // beta ~45° is how a phone is usually held; tilt relative to that
+      const rx = Math.max(-MAX, Math.min(MAX, (e.beta - 45) / 3))
+      const ry = Math.max(-MAX, Math.min(MAX, e.gamma / 3))
+      apply(-rx, ry)
+    }
+    el.addEventListener("pointermove", onMove)
+    el.addEventListener("pointerleave", onLeave)
+    window.addEventListener("deviceorientation", onOrient)
+    return () => {
+      cancelAnimationFrame(frame)
+      el.removeEventListener("pointermove", onMove)
+      el.removeEventListener("pointerleave", onLeave)
+      window.removeEventListener("deviceorientation", onOrient)
+    }
+  }, [reducedMotion])
 
   // Hide scroll indicator on scroll
   useEffect(() => {
@@ -428,6 +542,28 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           100% { transform: translateY(100%) translateX(-4px); opacity: 0; }
         }
 
+        /* ── HUD: bola navideña ── */
+        @keyframes hw-globe-sway {
+          0%, 100% { transform: rotate(-2deg); }
+          50%       { transform: rotate(2deg); }
+        }
+        @keyframes hw-globe-shake {
+          0%, 100% { transform: rotate(0deg) translateX(0); }
+          25%       { transform: rotate(-7deg) translateX(-4px); }
+          75%       { transform: rotate(7deg) translateX(4px); }
+        }
+
+        /* ── HUD: onda al tocar ── */
+        @keyframes hw-ripple {
+          from { transform: scale(0.4); opacity: 1; }
+          to   { transform: scale(7);   opacity: 0; }
+        }
+
+        /* Reducir movimiento: HUD estático, sin ondas */
+        @media (prefers-reduced-motion: reduce) {
+          .fs-hud-root, .fs-hud-root * { animation: none !important; }
+        }
+
         /* ── HUD: sonic pulse rings ── */
         @keyframes hw-sonic-ring {
           0%   { transform: scale(0.35); opacity: 0.9; }
@@ -478,12 +614,31 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-16 items-center">
 
             {/* ─── HUD Logo — top on mobile, right on desktop ─── */}
-            <div className="order-1 lg:order-2 flex items-center justify-center">
+            {/* Tilt target is this wrapper: .fs-hud's entrance animation pins its own transform */}
+            <div
+              ref={hudRef}
+              className="order-1 lg:order-2 flex items-center justify-center"
+              style={{ transition: "transform 0.25s ease-out", transformStyle: "preserve-3d" }}
+            >
               <div
-                className="fs-logo-in fs-hud relative flex items-center justify-center mx-auto w-[240px] h-[240px] lg:w-[400px] lg:h-[400px] cursor-pointer select-none"
+                className={`fs-logo-in fs-hud fs-hud-root relative flex items-center justify-center mx-auto w-[240px] h-[240px] lg:w-[400px] lg:h-[400px] cursor-pointer select-none`}
                 onClick={handleHudClick}
-                title="Toca para siguiente fase"
+                title={hudPhase === "esfera" ? "Toca para sacudir la bola" : "Toca para siguiente fase"}
               >
+                {/* ── Ondas al tocar ── */}
+                {ripples.map((rp) => (
+                  <span
+                    key={rp.id}
+                    className="absolute rounded-full pointer-events-none z-30"
+                    style={{
+                      left: rp.x, top: rp.y, width: 24, height: 24, marginLeft: -12, marginTop: -12,
+                      border: "2px solid rgba(232,65,24,0.8)",
+                      boxShadow: "0 0 12px rgba(245,200,66,0.5)",
+                      animation: "hw-ripple 0.8s ease-out forwards",
+                    }}
+                  />
+                ))}
+
 
                 {/* ── Photo slider (behind everything) ── */}
                 {galleryImages.length > 0 && (
@@ -858,6 +1013,114 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                   />
                 </div>
 
+                {/* ── Bola navideña phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "esfera" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      transformOrigin: "50% 8%",
+                      animation: globeShaking ? "hw-globe-shake 0.4s ease-in-out 4" : "hw-globe-sway 4s ease-in-out infinite",
+                    }}
+                  >
+                    {/* Gold cap + hook */}
+                    <div className="absolute left-1/2 -translate-x-1/2 rounded-full border-2 border-[#FACC15]" style={{ top: "5%", width: "7%", height: "6%" }} />
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 rounded-t-md"
+                      style={{ top: "10%", width: "16%", height: "5.5%", background: "linear-gradient(90deg,#a16207,#fde68a 45%,#ca8a04)", boxShadow: "0 2px 6px rgba(0,0,0,0.4)" }}
+                    />
+                    {/* Glass sphere */}
+                    <div
+                      className="absolute rounded-full overflow-hidden"
+                      style={{
+                        inset: "14%",
+                        background: "radial-gradient(circle at 50% 60%, rgba(185,28,28,0.18) 0%, rgba(20,83,45,0.22) 60%, rgba(255,255,255,0.06) 100%)",
+                        border: "1.5px solid rgba(255,255,255,0.25)",
+                        boxShadow: "inset 0 0 30px rgba(255,255,255,0.12), inset -10px -14px 30px rgba(0,0,0,0.35), 0 0 24px rgba(250,204,21,0.15)",
+                      }}
+                    >
+                      {/* Gentle snow inside */}
+                      {HUD_SNOW.map((f, i) => (
+                        <div key={i} className="absolute inset-0" style={{ animation: `hw-snow-fall ${f.d} ${f.dl} linear infinite` }}>
+                          <div className="absolute top-0 rounded-full bg-white" style={{ left: f.l, width: f.s, height: f.s, opacity: 0.85 }} />
+                        </div>
+                      ))}
+                      {/* Storm — only while shaken */}
+                      <div className="absolute inset-0" style={{ opacity: globeShaking ? 1 : 0, transition: "opacity 0.4s ease" }}>
+                        {GLOBE_STORM.map((f, i) => (
+                          <div key={i} className="absolute inset-0" style={{ animation: `hw-snow-fall ${f.d} ${f.dl} linear infinite` }}>
+                            <div className="absolute top-0 rounded-full bg-white" style={{ left: f.l, width: f.s, height: f.s, boxShadow: "0 0 4px #fff" }} />
+                          </div>
+                        ))}
+                      </div>
+                      {/* Snow pile at the bottom */}
+                      <div className="absolute bottom-0 left-0 right-0 h-[16%]" style={{ background: "radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 55%, transparent 75%)" }} />
+                      {/* Glass reflections */}
+                      <div className="absolute rounded-full" style={{ top: "9%", left: "16%", width: "30%", height: "18%", background: "radial-gradient(ellipse, rgba(255,255,255,0.45) 0%, transparent 70%)", transform: "rotate(-30deg)" }} />
+                      <div className="absolute rounded-full" style={{ bottom: "14%", right: "14%", width: "10%", height: "6%", background: "rgba(255,255,255,0.25)", filter: "blur(2px)" }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Reloj de Año Nuevo phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "reloj" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Gold ring fills as the day runs toward midnight */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "9%",
+                      background: `conic-gradient(#FACC15 0deg, #FDE68A ${(clock?.dayFrac ?? 0) * 360}deg, rgba(255,255,255,0.06) ${(clock?.dayFrac ?? 0) * 360}deg)`,
+                      WebkitMask: "radial-gradient(circle, transparent 64%, #000 65%)",
+                      mask: "radial-gradient(circle, transparent 64%, #000 65%)",
+                      filter: "drop-shadow(0 0 6px rgba(250,204,21,0.5))",
+                    }}
+                  />
+                  {/* Hour ticks — 12 o'clock bigger */}
+                  {CLOCK_TICKS.map((deg) => (
+                    <div key={deg} className="absolute inset-[14%]" style={{ transform: `rotate(${deg}deg)` }}>
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2 top-0 rounded-full"
+                        style={{ width: deg === 0 ? 3 : 2, height: deg === 0 ? "9%" : "5%", background: deg === 0 ? "#FACC15" : "rgba(255,255,255,0.55)" }}
+                      />
+                    </div>
+                  ))}
+                  {/* Hands — drawn only between the logo (r≈25%) and the ring so they never cross it */}
+                  {clock && (
+                    <>
+                      <div className="absolute inset-0" style={{ transform: `rotate(${clock.hourDeg}deg)`, transition: "transform 1s ease" }}>
+                        <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-[#FDE68A]" style={{ top: "17%", width: 4, height: "8%", boxShadow: "0 0 6px rgba(250,204,21,0.8)" }} />
+                      </div>
+                      <div className="absolute inset-0" style={{ transform: `rotate(${clock.minDeg}deg)`, transition: "transform 1s ease" }}>
+                        <div className="absolute left-1/2 -translate-x-1/2 rounded-full bg-white" style={{ top: "11%", width: 2, height: "14%", boxShadow: "0 0 6px rgba(255,255,255,0.8)" }} />
+                      </div>
+                    </>
+                  )}
+                  {/* Golden fireworks — Dec 31 and Año Nuevo */}
+                  {(clock?.dec31 || season === "anoNuevo") && (
+                    <>
+                      {GOLD_WAVES.map((wave, wi) => wave.pts.map((p, pi) => (
+                        <div
+                          key={`${wi}-${pi}`}
+                          className="absolute rounded-full"
+                          style={{
+                            width: 3, height: 3, top: "50%", left: "50%", marginTop: -1.5, marginLeft: -1.5,
+                            background: wave.color,
+                            filter: `drop-shadow(0 0 4px ${wave.glow})`,
+                            "--px": p.px + "px",
+                            "--py": p.py + "px",
+                            animation: `hw-piro-burst 2.6s ${wave.delay + pi * 0.025}s ease-out infinite`,
+                          } as any}
+                        />
+                      )))}
+                    </>
+                  )}
+                </div>
+
                 {/* ── Sonic pulse rings phase ── */}
                 <div
                   className="absolute inset-0 pointer-events-none"
@@ -907,6 +1170,8 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                       hudPhase === "galaxia"    ? "radial-gradient(circle,rgba(252,211,77,0.15) 0%,transparent 70%)" :
                       hudPhase === "sonico"     ? "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" :
                       hudPhase === "nevada"     ? "radial-gradient(circle,rgba(220,38,38,0.22) 0%,rgba(22,163,74,0.12) 45%,transparent 70%)" :
+                      hudPhase === "esfera"     ? "radial-gradient(circle,rgba(250,204,21,0.18) 0%,rgba(185,28,28,0.12) 50%,transparent 70%)" :
+                      hudPhase === "reloj"      ? "radial-gradient(circle,rgba(250,204,21,0.25) 0%,transparent 70%)" :
                                                   "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
                     transition: "background 0.7s ease",
                   }}
@@ -931,6 +1196,8 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                         hudPhase === "galaxia"    ? "drop-shadow(0 0 18px rgba(252,211,77,0.4)) saturate(1.3)" :
                         hudPhase === "sonico"     ? "drop-shadow(0 0 22px rgba(255,255,255,0.5))" :
                         hudPhase === "nevada"     ? "drop-shadow(0 0 20px rgba(255,255,255,0.55)) drop-shadow(0 0 8px rgba(220,38,38,0.4))" :
+                        hudPhase === "esfera"     ? "drop-shadow(0 0 16px rgba(255,255,255,0.45))" :
+                        hudPhase === "reloj"      ? "drop-shadow(0 0 20px rgba(250,204,21,0.6))" :
                                                     "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
                       transition: "filter 0.7s ease",
                     }}
