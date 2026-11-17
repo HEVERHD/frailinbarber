@@ -21,6 +21,7 @@ import {
   BellOff,
   ActivitySquare,
 } from "lucide-react"
+import { useDashboardSeason, SeasonLights, LogoAccent } from "@/components/dashboard/DashboardSeason"
 
 const allNavItems = [
   { href: "/dashboard", label: "Dashboard", Icon: LayoutDashboard, roles: ["ADMIN", "BARBER"] },
@@ -95,6 +96,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const role = (session?.user as any)?.role || "BARBER"
+  const season = useDashboardSeason()
 
   useEffect(() => {
     setReady(true)
@@ -150,9 +152,13 @@ export function Sidebar() {
     <>
       {/* Mobile Top Navbar */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-[#1a0a0a] border-b border-[#3d2020] z-50">
+        {season && <SeasonLights season={season} segments={4} className="top-full" />}
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Mi Barbería" width={28} height={28} className="rounded-lg" />
+            <div className="relative">
+              <img src="/logo.png" alt="Mi Barbería" width={28} height={28} className="rounded-lg" />
+              {season && <LogoAccent season={season} size={28} />}
+            </div>
             <h1 className="text-sm font-bold text-white">
               Mi Barbería
             </h1>
@@ -222,15 +228,20 @@ export function Sidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-[#1a0a0a] text-white min-h-screen p-6 border-r border-[#3d2020]">
-        <div className="mb-10 flex items-center gap-3">
-          <img src="/logo.png" alt="Mi Barbería" width={36} height={36} className="rounded-lg" />
+      <aside className="relative z-10 hidden md:flex flex-col w-64 bg-[#1a0a0a] text-white min-h-screen p-6 border-r border-[#3d2020]">
+        {season && <SeasonLights season={season} segments={3} className="top-0" />}
+        <div className={`mb-10 flex items-center gap-3 ${season ? "mt-4" : ""}`}>
+          <div className="relative">
+            <img src="/logo.png" alt="Mi Barbería" width={36} height={36} className="rounded-lg" />
+            {season && <LogoAccent season={season} size={36} />}
+          </div>
           <div>
             <h1 className="text-lg font-bold">
               Mi Barbería
             </h1>
             <p className="text-xs text-white/30">
               {role === "ADMIN" ? "Administrador" : "Barbero"}
+              {season && <span className="ml-1">{season === "anoNuevo" ? "· 🎆" : "· 🎄"}</span>}
             </p>
           </div>
         </div>

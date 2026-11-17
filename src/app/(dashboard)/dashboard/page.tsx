@@ -29,6 +29,7 @@ import {
   Star,
 } from "lucide-react"
 import SeasonSummary from "@/components/SeasonSummary"
+import { SeasonGreeting } from "@/components/dashboard/DashboardSeason"
 
 type Stats = {
   monthRevenue: number
@@ -187,6 +188,7 @@ export default function DashboardPage() {
           <p className="text-sm text-white/35 mt-1">
             {new Date().toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
+          <SeasonGreeting />
         </div>
         {stats.monthProjection > 0 && (
           <div className="hidden sm:flex items-center gap-2 bg-[#e84118]/10 border border-[#e84118]/25 rounded-xl px-4 py-2.5">

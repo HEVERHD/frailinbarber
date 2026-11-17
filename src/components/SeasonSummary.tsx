@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { TrendingUp, TrendingDown, Minus, Clock, Star, CalendarDays } from "lucide-react"
-import { getSeason } from "@/lib/season-shared"
+import { useSeason } from "@/lib/season"
 
 type SeasonStats = {
   monthLabel: string
@@ -17,7 +17,8 @@ type SeasonStats = {
 
 // Resumen de temporada para el dashboard — solo en Navidad / Año Nuevo
 export default function SeasonSummary() {
-  const season = getSeason()
+  // Follows the theme chosen in Ajustes (or ?tema= preview), like the rest of the panel
+  const season = useSeason()
   const active = season === "navidad" || season === "anoNuevo"
   const [data, setData] = useState<SeasonStats | null>(null)
   const [failed, setFailed] = useState(false)
