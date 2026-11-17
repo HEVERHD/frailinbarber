@@ -28,6 +28,7 @@ import {
   Clock,
   Star,
 } from "lucide-react"
+import SeasonSummary from "@/components/SeasonSummary"
 
 type Stats = {
   monthRevenue: number
@@ -197,6 +198,9 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Resumen de temporada — solo Navidad / Año Nuevo */}
+      <SeasonSummary />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">

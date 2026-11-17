@@ -4,6 +4,11 @@ import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { QRCodeSVG } from "qrcode.react"
 import { useToast } from "@/components/ui/toast"
+import { getSeason, SEASON_LABELS, SEASONS } from "@/lib/season-shared"
+
+const SEASON_EMOJI: Record<string, string> = {
+  auto: "📅", fiestas: "🎊", navidad: "🎄", anoNuevo: "🎆", default: "⚪",
+}
 
 const DAYS = [
   { value: "0", label: "Domingo" },
@@ -33,6 +38,7 @@ export default function SettingsPage() {
     address: "",
     city: "",
     phone: "",
+    seasonOverride: "auto",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -82,6 +88,7 @@ export default function SettingsPage() {
             address: data.address || "",
             city: data.city || "",
             phone: data.phone || "",
+            seasonOverride: data.seasonOverride || "auto",
           })
         }
         setLoading(false)
@@ -90,7 +97,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     setSaving(true)
-    await fetch("/api/settings", {
+    const res = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -103,7 +110,7 @@ export default function SettingsPage() {
       }),
     })
     setSaving(false)
-    toast("Configuración guardada")
+    toast(res.ok ? "Configuración guardada" : "No se pudo guardar la configuración")
   }
 
   const toggleDay = (day: string) => {
@@ -340,6 +347,39 @@ export default function SettingsPage() {
                 )
               })}
             </div>
+          )}
+        </div>
+
+        {/* Seasonal theme */}
+        <div className="bg-[#2d1515] rounded-xl p-6 border border-[#3d2020]">
+          <h3 className="font-semibold mb-1 text-white">Tema de temporada</h3>
+          <p className="text-sm text-white/40 mb-4">
+            Decoración de la página pública. En automático cambia por fecha (hoy:{" "}
+            <span className="text-white/70 font-medium">{SEASON_LABELS[getSeason()]}</span>). Elige uno para
+            adelantarlo, o &quot;Sin tema&quot; para apagar la decoración.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {["auto", ...SEASONS].map((value) => {
+              const isSelected = settings.seasonOverride === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setSettings({ ...settings, seasonOverride: value })}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition border-2 ${
+                    isSelected
+                      ? "bg-[#e84118] border-[#e84118] text-white"
+                      : "bg-[#1a0a0a] border-[#3d2020] text-white/60 hover:border-[#e84118]/50 hover:text-white"
+                  }`}
+                >
+                  {SEASON_EMOJI[value]} {value === "auto" ? "Automático" : SEASON_LABELS[value as keyof typeof SEASON_LABELS]}
+                </button>
+              )
+            })}
+          </div>
+          {isAdmin && (
+            <p className="text-xs text-white/30 mt-3">
+              La página pública usa el tema del primer barbero (el mismo que define nombre y dirección de la barbería).
+            </p>
           )}
         </div>
 

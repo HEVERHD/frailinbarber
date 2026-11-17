@@ -26,7 +26,17 @@ const HUD_SPARKS = [
   { dur: "7s",   delay: "3.5s",  sz: 2 },
 ]
 
-const HUD_PHASES = ["sparks", "vortex", "heartbeat", "embers", "glitch", "pirotecnia", "aurora", "radar", "galaxia", "sonico"] as const
+// Barbería (poste / tijeras / navaja) intercaladas con las demás para variar el ritmo
+const HUD_PHASES = ["sparks", "poste", "vortex", "heartbeat", "tijeras", "embers", "glitch", "navaja", "pirotecnia", "aurora", "radar", "galaxia", "sonico"] as const
+
+// Tijeras — hair clippings falling inside the circle after each snip
+const HUD_HAIR = Array.from({ length: 10 }, (_, i) => ({
+  l: `${28 + ((i * 23) % 44)}%`,
+  rot: (i * 47) % 180,
+  len: 6 + (i % 3) * 3,
+  d: `${1.6 + (i % 3) * 0.4}s`,
+  dl: `${(i * 0.21) % 1.6}s`,
+}))
 // Fases de temporada: nevada + bola navideña + reloj de Año Nuevo.
 // En temporada salen radar / glitch / galaxia para que el ciclo no se alargue.
 type HudPhase = typeof HUD_PHASES[number] | "nevada" | "esfera" | "reloj"
@@ -542,6 +552,30 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
           100% { transform: translateY(100%) translateX(-4px); opacity: 0; }
         }
 
+        /* ── HUD: poste de barbero ── */
+        @keyframes hw-pole-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+
+        /* ── HUD: tijeras ── */
+        @keyframes hw-snip-a {
+          0%, 60%, 100% { transform: rotate(-16deg); }
+          75%           { transform: rotate(0deg); }
+        }
+        @keyframes hw-snip-b {
+          0%, 60%, 100% { transform: rotate(16deg); }
+          75%           { transform: rotate(0deg); }
+        }
+        @keyframes hw-hair-fall {
+          0%   { transform: translateY(0) rotate(var(--hr, 0deg));   opacity: 0; }
+          15%  { opacity: 0.9; }
+          100% { transform: translateY(70%) rotate(calc(var(--hr, 0deg) + 90deg)); opacity: 0; }
+        }
+
+        /* ── HUD: brillo de navaja ── */
+        @keyframes hw-razor-sweep {
+          0%, 15%   { transform: translateX(-75%); }
+          55%, 100% { transform: translateX(75%); }
+        }
+
         /* ── HUD: bola navideña ── */
         @keyframes hw-globe-sway {
           0%, 100% { transform: rotate(-2deg); }
@@ -861,15 +895,18 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                 {/* ── Aurora boreal phase ── */}
                 <div
                   className="absolute inset-0 pointer-events-none"
-                  style={{ opacity: hudPhase === "aurora" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                  // Toned down: the pulse keyframes animate opacity, so the cap lives on this wrapper
+                  style={{ opacity: hudPhase === "aurora" && !hudFading ? 0.7 : 0, transition: "opacity 0.7s ease" }}
                 >
+                  {/* Rings with a clear centre (radial mask) so the logo stays readable */}
                   <div
                     className="absolute rounded-full"
                     style={{
                       inset: "5%",
                       background: "conic-gradient(#ff0066,#ff9900,#ffff00,#00ff66,#0099ff,#cc00ff,#ff0066)",
                       animation: "hw-aurora-hue 7s linear infinite, hw-aurora-pulse 3.5s ease-in-out infinite",
-                      opacity: 0.65,
+                      WebkitMask: "radial-gradient(circle, transparent 58%, #000 72%)",
+                      mask: "radial-gradient(circle, transparent 58%, #000 72%)",
                     }}
                   />
                   <div
@@ -878,7 +915,8 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                       inset: "16%",
                       background: "conic-gradient(#00ffcc,#0066ff,#cc00ff,#ff6600,#00ffcc)",
                       animation: "hw-aurora-inner 9s linear infinite, hw-aurora-pulse 4s ease-in-out 1s infinite",
-                      opacity: 0.45,
+                      WebkitMask: "radial-gradient(circle, transparent 62%, #000 78%)",
+                      mask: "radial-gradient(circle, transparent 62%, #000 78%)",
                     }}
                   />
                   <div
@@ -1011,6 +1049,109 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                     className="absolute bottom-0 left-0 right-0 h-1/4"
                     style={{ background: "radial-gradient(ellipse at bottom, rgba(220,240,255,0.25) 0%, transparent 70%)" }}
                   />
+                </div>
+
+                {/* ── Poste de barbero phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "poste" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Candy-stripe ring: spinning conic stripes read as the pole's spiral */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "6%",
+                      background: "repeating-conic-gradient(#e84118 0deg 12deg, #ffffff 12deg 24deg, #1d4ed8 24deg 36deg, #ffffff 36deg 48deg)",
+                      WebkitMask: "radial-gradient(circle closest-side, transparent 76%, #000 77%, #000 88%, transparent 89%)",
+                      mask: "radial-gradient(circle closest-side, transparent 76%, #000 77%, #000 88%, transparent 89%)",
+                      animation: "hw-pole-spin 6s linear infinite",
+                      filter: "drop-shadow(0 0 6px rgba(232,65,24,0.5))",
+                    }}
+                  />
+                  {/* Chrome caps — thin silver rims on both sides of the stripes */}
+                  <div className="absolute rounded-full border border-white/40" style={{ inset: "6%" }} />
+                  <div className="absolute rounded-full border border-white/25" style={{ inset: "11.5%" }} />
+                  {/* Thin counter-spinning inner ring */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "18%",
+                      background: "repeating-conic-gradient(rgba(232,65,24,0.6) 0deg 8deg, transparent 8deg 30deg)",
+                      WebkitMask: "radial-gradient(circle closest-side, transparent 93%, #000 95%, #000 99%, transparent 100%)",
+                      mask: "radial-gradient(circle closest-side, transparent 93%, #000 95%, #000 99%, transparent 100%)",
+                      animation: "hw-pole-spin 9s linear infinite reverse",
+                    }}
+                  />
+                </div>
+
+                {/* ── Tijeras phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "tijeras" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Scissors orbit the ring, snipping as they go */}
+                  <div className="absolute inset-0" style={{ animation: "hw-spark-orbit 6s linear infinite" }}>
+                    <svg
+                      className="absolute left-1/2 -translate-x-1/2"
+                      style={{ top: "3%", width: "17%", height: "17%", filter: "drop-shadow(0 0 6px rgba(255,255,255,0.6))" }}
+                      viewBox="0 0 40 40"
+                    >
+                      {[{ anim: "hw-snip-a", cy: 31 }, { anim: "hw-snip-b", cy: 9 }].map((b) => (
+                        <g
+                          key={b.anim}
+                          style={{ transformOrigin: "20px 20px", transformBox: "view-box", animation: `${b.anim} 1.2s ease-in-out infinite` }}
+                        >
+                          {/* Blade */}
+                          <path d="M20 20 L39 20" stroke="#e5e7eb" strokeWidth={2.6} strokeLinecap="round" />
+                          {/* Shank + ring handle */}
+                          <path d={`M20 20 L10 ${b.cy > 20 ? 27 : 13}`} stroke="#e84118" strokeWidth={2.2} strokeLinecap="round" />
+                          <circle cx={7} cy={b.cy} r={4.5} fill="none" stroke="#e84118" strokeWidth={2.2} />
+                        </g>
+                      ))}
+                      <circle cx={20} cy={20} r={1.6} fill="#F5C842" />
+                    </svg>
+                  </div>
+                  {/* Falling hair clippings */}
+                  <div className="absolute rounded-full overflow-hidden" style={{ inset: "14%" }}>
+                    {HUD_HAIR.map((h, i) => (
+                      <div key={i} className="absolute inset-0" style={{ animation: `hw-hair-fall ${h.d} ${h.dl} ease-in infinite`, ["--hr" as string]: `${h.rot}deg` } as React.CSSProperties}>
+                        <div
+                          className="absolute rounded-full"
+                          style={{ left: h.l, top: "8%", width: 1.5, height: h.len, background: i % 3 === 0 ? "#f5f5f4" : "#a8a29e" }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Brillo de navaja phase ── */}
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ opacity: hudPhase === "navaja" && !hudFading ? 1 : 0, transition: "opacity 0.7s ease" }}
+                >
+                  {/* Steel ring with a travelling glint */}
+                  <div
+                    className="absolute rounded-full"
+                    style={{
+                      inset: "13%",
+                      background: "conic-gradient(from 0deg, #6b7280, #e5e7eb 20deg, #9ca3af 60deg, #4b5563 180deg, #d1d5db 300deg, #6b7280)",
+                      WebkitMask: "radial-gradient(circle closest-side, transparent 94%, #000 96%, #000 99%, transparent 100%)",
+                      mask: "radial-gradient(circle closest-side, transparent 94%, #000 96%, #000 99%, transparent 100%)",
+                      animation: "hw-pole-spin 4s linear infinite",
+                    }}
+                  />
+                  {/* Diagonal light sweep across the logo, like light running along a blade */}
+                  <div className="absolute rounded-full overflow-hidden z-20" style={{ inset: "14%" }}>
+                    <div
+                      className="absolute inset-y-0"
+                      style={{
+                        left: "-75%", width: "250%",
+                        background: "linear-gradient(105deg, transparent 42%, rgba(255,255,255,0.08) 46%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0.08) 54%, transparent 58%)",
+                        animation: "hw-razor-sweep 2.4s ease-in-out infinite",
+                        mixBlendMode: "screen",
+                      }}
+                    />
+                  </div>
                 </div>
 
                 {/* ── Bola navideña phase ── */}
@@ -1171,6 +1312,9 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                       hudPhase === "sonico"     ? "radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 70%)" :
                       hudPhase === "nevada"     ? "radial-gradient(circle,rgba(220,38,38,0.22) 0%,rgba(22,163,74,0.12) 45%,transparent 70%)" :
                       hudPhase === "esfera"     ? "radial-gradient(circle,rgba(250,204,21,0.18) 0%,rgba(185,28,28,0.12) 50%,transparent 70%)" :
+                      hudPhase === "poste"      ? "radial-gradient(circle,rgba(232,65,24,0.18) 0%,rgba(29,78,216,0.12) 50%,transparent 70%)" :
+                      hudPhase === "tijeras"    ? "radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%)" :
+                      hudPhase === "navaja"     ? "radial-gradient(circle,rgba(209,213,219,0.18) 0%,transparent 70%)" :
                       hudPhase === "reloj"      ? "radial-gradient(circle,rgba(250,204,21,0.25) 0%,transparent 70%)" :
                                                   "radial-gradient(circle,rgba(139,92,246,0.32) 0%,transparent 70%)",
                     transition: "background 0.7s ease",
@@ -1191,12 +1335,15 @@ export default function HeroSection({ galleryImages = [], shopName = "Mi Barber�
                         hudPhase === "vortex"     ? "drop-shadow(0 0 18px rgba(167,139,250,0.6))" :
                         hudPhase === "embers"     ? "drop-shadow(0 0 18px rgba(249,115,22,0.55))" :
                         hudPhase === "pirotecnia" ? "drop-shadow(0 0 20px rgba(252,211,77,0.65))" :
-                        hudPhase === "aurora"     ? "drop-shadow(0 0 20px rgba(100,200,255,0.55)) hue-rotate(180deg)" :
+                        hudPhase === "aurora"     ? "drop-shadow(0 0 20px rgba(100,200,255,0.55))" :
                         hudPhase === "radar"      ? "drop-shadow(0 0 16px rgba(0,255,100,0.5))" :
                         hudPhase === "galaxia"    ? "drop-shadow(0 0 18px rgba(252,211,77,0.4)) saturate(1.3)" :
                         hudPhase === "sonico"     ? "drop-shadow(0 0 22px rgba(255,255,255,0.5))" :
                         hudPhase === "nevada"     ? "drop-shadow(0 0 20px rgba(255,255,255,0.55)) drop-shadow(0 0 8px rgba(220,38,38,0.4))" :
                         hudPhase === "esfera"     ? "drop-shadow(0 0 16px rgba(255,255,255,0.45))" :
+                        hudPhase === "poste"      ? "drop-shadow(0 0 18px rgba(232,65,24,0.55))" :
+                        hudPhase === "tijeras"    ? "drop-shadow(0 0 14px rgba(255,255,255,0.4))" :
+                        hudPhase === "navaja"     ? "drop-shadow(0 0 16px rgba(229,231,235,0.6)) brightness(1.08)" :
                         hudPhase === "reloj"      ? "drop-shadow(0 0 20px rgba(250,204,21,0.6))" :
                                                     "drop-shadow(0 0 18px rgba(139,92,246,0.5))",
                       transition: "filter 0.7s ease",

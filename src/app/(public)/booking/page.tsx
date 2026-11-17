@@ -70,6 +70,9 @@ function formatTime(slot: string): string {
 
 const DAY_LABELS = ["L", "M", "M", "J", "V", "S", "D"]
 
+// fetch → JSON, but a 4xx/5xx (or an empty body) is an error instead of a crash in .json()
+const jsonOrThrow = (r: Response) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+
 export default function BookingPage() {
   const router = useRouter()
   const season = useSeason()
@@ -90,6 +93,9 @@ export default function BookingPage() {
   const [clientEmail, setClientEmail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
+  // Network/server failure loading barbers, services or slots → show retry card
+  const [loadError, setLoadError] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [nameSuggestions, setNameSuggestions] = useState<{ name: string; phone: string }[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [showWaitlist, setShowWaitlist] = useState(false)
@@ -169,7 +175,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     fetch("/api/barbers")
-      .then((r) => r.json())
+      .then(jsonOrThrow)
       .then((data: Barber[]) => {
         setBarbers(data)
         if (data.length === 1) {
@@ -177,16 +183,18 @@ export default function BookingPage() {
           setStep("service")
         }
       })
-  }, [])
+      .catch(() => setLoadError(true))
+  }, [reloadKey])
 
   useEffect(() => {
     if (step === "service" && services.length === 0) {
       fetch("/api/services")
-        .then((r) => r.json())
+        .then(jsonOrThrow)
         .then(setServices)
+        .catch(() => setLoadError(true))
         .finally(() => setServicesLoading(false))
     }
-  }, [step, services.length])
+  }, [step, services.length, reloadKey])
 
   // Auto-select today when entering the datetime step (so slots load immediately)
   useEffect(() => {
@@ -238,15 +246,22 @@ export default function BookingPage() {
       setSlots([])
       setDayOff(false)
       fetch(`/api/appointments/slots?date=${selectedDate}&serviceId=${selectedService.id}&barberId=${selectedBarber.id}`)
-        .then((r) => r.json())
+        .then(jsonOrThrow)
         .then((data) => {
           const allSlots: { time: string; available: boolean }[] = data.slots ?? []
           setSlots(allSlots.filter((s) => s.available).map((s) => s.time))
           setDayOff(data.dayOff ?? false)
-          setLoading(false)
         })
+        .catch(() => setLoadError(true))
+        .finally(() => setLoading(false))
     }
-  }, [selectedDate, selectedService, selectedBarber])
+  }, [selectedDate, selectedService, selectedBarber, reloadKey])
+
+  const retryLoad = () => {
+    setLoadError(false)
+    setServicesLoading(true)
+    setReloadKey((k) => k + 1)
+  }
 
   // ── Handlers ───────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -511,6 +526,20 @@ export default function BookingPage() {
             </div>
           )
         })()}
+
+        {/* ── Error de carga con reintento ── */}
+        {loadError && (
+          <div className="mb-8 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-center">
+            <p className="font-bold text-white mb-1">No pudimos cargar la información</p>
+            <p className="text-sm text-white/60 mb-4">Revisa tu conexión e inténtalo de nuevo.</p>
+            <button
+              onClick={retryLoad}
+              className="px-5 py-2.5 rounded-xl bg-[#e84118] text-white text-sm font-bold hover:bg-[#c0392b] transition"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
 
         {/* ── Step: Barber ── */}
         {step === "barber" && (

@@ -143,6 +143,7 @@ model BarberSettings {
   address       String? // Physical address for the "Como llegar" section
   city          String? // Shown in the hero badge on the public page
   phone         String?
+  seasonOverride String? // Tema forzado desde ajustes: fiestas | navidad | anoNuevo | default. null = automático por fecha
   userId        String  @unique
   user          User    @relation(fields: [userId], references: [id])
 }

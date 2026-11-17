@@ -6,9 +6,28 @@ import { daysUntilNewYear, upcomingYear } from "@/lib/season"
 interface NavidadBannerProps {
   // anoNuevo = 1–6 de enero: el banner celebra el año que arrancó
   newYear?: boolean
+  // Cupos libres reales por fecha (YYYY-MM-DD) del 24 y 31 de diciembre, desde /api/season
+  cupos?: Record<string, number> | null
 }
 
-export default function NavidadBanner({ newYear = false }: NavidadBannerProps) {
+type Msg = { icon: string; text: string; short?: string; accent: string }
+
+// Real availability for the 24th / 31st — urgency only when it's true
+function cuposMessages(cupos: Record<string, number> | null | undefined): Msg[] {
+  if (!cupos || Object.keys(cupos).length === 0) {
+    return [{ icon: "✂️", text: "YA PUEDES RESERVAR PARA EL 24 Y EL 31", short: "RESERVA TU 24 Y 31", accent: "Agenda online" }]
+  }
+  return Object.entries(cupos).sort(([a], [b]) => a.localeCompare(b)).map(([date, n]) => {
+    const day = Number(date.slice(8, 10))
+    if (n === 0) {
+      return { icon: "🔥", text: `EL ${day} DE DICIEMBRE ESTÁ AGOTADO`, short: `${day} DIC AGOTADO`, accent: "Reserva otro día" }
+    }
+    const qty = n === 1 ? "QUEDA 1 CUPO" : `QUEDAN ${n} CUPOS`
+    return { icon: "✂️", text: `${qty} PARA EL ${day} DE DICIEMBRE`, short: `${qty} EL ${day}`, accent: "¡Reserva ya!" }
+  })
+}
+
+export default function NavidadBanner({ newYear = false, cupos }: NavidadBannerProps) {
   const [msgIndex, setMsgIndex] = useState(0)
   const [fading, setFading] = useState(false)
 
@@ -16,14 +35,14 @@ export default function NavidadBanner({ newYear = false }: NavidadBannerProps) {
   const days = daysUntilNewYear()
 
   // short = versión para móvil, donde el texto largo no cabe en el banner
-  const messages: Array<{ icon: string; text: string; short?: string; accent: string }> = newYear
+  const messages: Msg[] = newYear
     ? [
         { icon: "🎆", text: `¡FELIZ ${year}!`, accent: "Arranca el año con buen corte" },
         { icon: "✂️", text: "AGENDA YA TU PRIMER CORTE DEL AÑO", short: "TU PRIMER CORTE DEL AÑO", accent: "Sin esperas" },
       ]
     : [
         { icon: "🎄", text: "FELIZ NAVIDAD", accent: "Estrena look estas fiestas" },
-        { icon: "✂️", text: "CUPOS LIMITADOS PARA EL 24 Y EL 31", short: "CUPOS LIMITADOS 24 Y 31", accent: "¡Reserva ya!" },
+        ...cuposMessages(cupos),
         {
           icon: "🥂",
           text: days === 1 ? `FALTA 1 DÍA PARA EL ${year}` : `FALTAN ${days} DÍAS PARA EL ${year}`,

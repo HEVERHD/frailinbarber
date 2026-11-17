@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { isSeason } from "@/lib/season-shared"
 
 export const dynamic = "force-dynamic"
 
@@ -49,6 +50,15 @@ export async function PUT(req: NextRequest) {
 
   const body = await req.json()
 
+  // Tema forzado: "auto" / null → automático por fecha; si no viene, no se toca
+  let seasonOverride: string | null | undefined = undefined
+  if ("seasonOverride" in body) {
+    const v = body.seasonOverride
+    if (v === null || v === "" || v === "auto") seasonOverride = null
+    else if (isSeason(v)) seasonOverride = v
+    else return NextResponse.json({ error: "Temporada no válida" }, { status: 400 })
+  }
+
   // ADMIN can update another barber's settings
   const targetUserId = (role === "ADMIN" && body.barberId) ? body.barberId : userId
 
@@ -64,6 +74,7 @@ export async function PUT(req: NextRequest) {
       address: body.address ?? null,
       city: body.city ?? null,
       phone: body.phone,
+      seasonOverride,
     },
     create: {
       shopName: body.shopName,
@@ -75,6 +86,7 @@ export async function PUT(req: NextRequest) {
       address: body.address ?? null,
       city: body.city ?? null,
       phone: body.phone,
+      seasonOverride: seasonOverride ?? null,
       userId: targetUserId,
     },
   })
